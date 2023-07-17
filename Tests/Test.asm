@@ -1,33 +1,27 @@
-.MODEL small
-.STACK 100h
-.data
-
+.model small
+.stack 100h
 .code
-
-; proc _memcpy
-
-push bp          ; Set up the call frame
-mov  bp,sp
-push es          ; Save ES
-mov  cx,[bp+6]   ; Set CX = len
-jcxz done        ; If len = 0, return
-
-mov  si,[bp+4]   ; Set SI = src
-mov  di,[bp+2]   ; Set DI = dst
-push ds          ; Set ES = DS
-pop  es
-
-loop_here:
-mov  al,[si]     ; Load AL from [src]
-mov  [di],al     ; Store AL to [dst]
-inc  si          ; Increment src
-inc  di          ; Increment dst
-dec  cx          ; Decrement len
-jnz  loop_here   ; Repeat the loop
-
-done:
-pop  es          ; Restore ES
-pop  bp          ; Restore previous call frame
-sub  ax,ax       ; Set AX = 0
-ret              ; Return
+;; proc _memcpy		;; void memcpy(word De as [BP+2], word Ad as [BP+4], word N as [BP+6]);
+   push BP		;; enter, using ES
+   mov BP, SP
+   push ES
+   mov CX, [BP+6]	;; if ((CX = N) == 0) return 0;
+   jcxz _1f
+   mov SI, [BP+4]	;; DS:SI = Ad;
+   mov DI, [BP+2]	;; ES:DI = De;
+   push DS
+   pop ES
+   _1b:			;; do {
+      mov AL, [SI]	;; *ES:DI = AL = *DS:SI;
+      mov [DI], AL
+      inc SI		;; DS:SI++;
+      inc DI		;; ES:DI++;
+      dec CX		;; CX--;
+   jnz _1b		;; } while (CX != 0);
+_1f:
+   pop ES		;; leave;
+   pop BP
+   sub AX, AX		;; return 0;
+ret
+;; endp
 end

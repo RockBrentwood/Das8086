@@ -1,0 +1,287 @@
+Flags:
+CF	For unsigned overflow of the result
+ZF	For zero result
+SF	For the sign-bit (the high-order bit) of the result
+OF	For signed overflow of the result
+PF	For parity on the low-order 8 bits of the result
+AF	For unsigned overflow of the low-order 4-bits of the result
+IF	To turn on interrupts
+DF	To decrement SI and/or DI on string operations, as oppsed to incrementing them
+Operation Types:
+∙	add, sub, cmp, and, test, or, xor
+	(R, m); (m, R); (R, R); (m, i); (R, i)
+	Affect some or all of CF, ZF, SF, OF, PF, AF
+∙	mul, imul, div, idiv
+	(R); (m)
+	mul, imul: Affect some or all of CF, OF
+∙	inc, dec, not, neg
+	(R); (m)
+	inc, dec: Affect some or all of ZF, SF, OF, PF, AF
+	neg: Affects some or all of CF, ZF, SF, OF, PF, AF
+
+Addressing Modes:
+x	m	D	Address
+0	0	−	DS:[BX + SI]
+0	1	−	DS:[BX + DI]
+0	2	−	SS:[BP + SI]
+0	3	−	SS:[BP + DI]
+0	4	−	DS:[SI]
+0	5	−	DS:[DI]
+0	6	Dw	Dw
+0	7	−	DS:[BX]
+1	0	Ds	DS:[BX + SI + Ds]
+1	1	Ds	DS:[BX + DI + Ds]
+1	2	Ds	SS:[BP + SI + Ds]
+1	3	Ds	SS:[BP + DI + Ds]
+1	4	Ds	DS:[SI + Ds]
+1	5	Ds	DS:[DI + Ds]
+1	6	Ds	SS:[BP + Ds]
+1	7	Ds	DS:[BX + Ds]
+2	0	Dw	DS:[BX + SI + Dw]
+2	1	Dw	DS:[BX + DI + Dw]
+2	2	Dw	SS:[BP + SI + Dw]
+2	3	Dw	SS:[BP + DI + Dw]
+2	4	Dw	DS:[SI + Dw]
+2	5	Dw	DS:[DI + Dw]
+2	6	Dw	SS:[BP + Dw]
+2	7	Dw	DS:[BX + Dw]
+3	0	―	AX
+3	1	―	CX
+3	2	―	DX
+3	3	―	BX
+3	4	―	SP
+3	5	―	BP
+3	6	―	SI
+3	7	―	DI
+
+aaa		CF = AF = (AL&0xf) >= 10 || AF; if (AF) AL += 0x10 - 10, AH++;
+aad		AL += 10*AH, AH = 0; (ZF,SF,PF) are set
+aam		(AH,AL) = (AL/10, AL%10); (ZF,SF,PF) are set
+aas		CF = AF = (AL&0xf) >= 10 || AF; if (AF) AL -= 0x10 - 10, AH--;
+adc	A,B	(R,m); (m,R); (R,R); (m,i); (R,i)
+		A += B + CF; (ZF,SF,PF) are set; (CF,OF,AF) are set
+add	A,B	(R,m); (m,R); (R,R); (m,i); (R,i)
+		A += B; (ZF,SF,PF) are set; (CF,OF,AF) are set
+and	A,B	(R,m); (m,R); (R,R); (m,i); (R,i)
+		A &= B, OF = CF = false; (ZF,SF,PF) are set
+call	A	(ProcID); (Label); (Address4)
+		push [CS,]IP; IP = A
+cbw		AH = (AL&0x80)? 0xff: 0x00
+clc		CF = false
+cld		DF = false
+cli		IP = false
+cmc		CF = !CF
+cmp	A,B	(R,m); (m,R); (R,R); (m,i); (R,i)
+		(void)(A - B); (ZF,SF,PF) are set; (CF,OF,AF) are set
+cmpsb		(void)(DS:[SI] - ES:[DI]); if (DF) SI--, DI--; else SI++, DI++; (ZF,SF,PF) are set; (CF,OF,AF) are set
+cmpsw		(void)(DS:[SI] - ES:[DI]); if (DF) SI -= 2, DI -= 2; else SI += 2, DI += 2; (ZF,SF,PF) are set; (CF,OF,AF) are set
+cwd		DX = (AX&0x8000)? 0xffff: 0x0000
+daa		AF = (AL&0xf) >= 10 || AF; if (AF) AL += 0x10 - 10;
+		CF = (AL&0xf0) >= 0x10*10 || CF; if (CF) AL += 0x10*(0x10 - 10);
+		(ZF,SF,PF) are set; OF is set
+das		AL = (AL&0xf) >= 10 || AF; if (AF) AL -= 0x10 - 10;
+		CF = (AL&0xf0) >= 0x10*10 || CF; if (CF) AL -= 0x10*(0x10 - 10);
+		(ZF,SF,PF) are set; OF is set
+dec	A	(R); (m)
+		A--; (ZF,SF,PF) are set; (OF,AF) are set
+div	A	(R); (m)
+		Byte: (AH,AL) = (AX%A, AX/A)
+		Word: (DX,AX) = (DX:AX%A, DX:AX/A)
+hlt		Halt the system
+idiv	A	(R); (m)
+		Byte: (AH,AL) = (AX%A, AX/A)
+		Word: (DX,AX) = (DX:AX%A, DX:AX/A)
+imul	A	(R); (m)
+		Byte: AX = AL*A; (CF,OF) are set
+		Word: DX:AX = AX*A; (CF,OF) are set
+in	A,B	(AL,Ib); (AL,DX); (AX,Ib); (AX,DX)
+		Byte: A = *(byte *)PRAM[B];
+		Word: A = *(word *)PRAM[B];
+inc	A	(R); (m)
+		A++; (ZF,SF,PF) are set; (OF,AF) are set
+int	A	push FLAGS, CS, IP; IF = false; goto Int[A];
+into		if (OF) int 4
+iret		pop IP, CS, FLAGS
+ja	A	(Label)
+		if (!CF && !ZF) IP = A;
+jae	A	(Label)
+		if (!CF) IP = A;
+jb	A	(Label)
+		if (CF) IP = A;
+jbe	A	(Label)
+		if (CF || ZF) IP = A;
+jc	A	(Label)
+		if (CF) IP = A;
+jcxz	A	(Label)
+		if (CX == 0) IP = A;
+je	A	(Label)
+		if (ZF) IP = A;
+jg	A	(Label)
+		if (!ZF && SF == OF) IP = A;
+jge	A	(Label)
+		if (SF == OF) IP = A;
+jl	A	(Label)
+		if (SF != OF) IP = A;
+jle	A	(Label)
+		if (SF != OF || ZF) IP = A;
+jmp	A	(Label); (Address4)
+		[CS = (A>>8)&0xffff,] IP = A&0xffff;
+jna	A	(Label)
+		if (CF || ZF) IP = A;
+jnae	A	(Label)
+		if (CF) IP = A;
+jnb	A	(Label)
+		if (!CF) IP = A;
+jnbe	A	(Label)
+		if (!CF && !ZF) IP = A;
+jnc	A	(Label)
+		if (!CF) IP = A;
+jne	A	(Label)
+		if (!ZF) IP = A;
+jng	A	(Label)
+		if (ZF && SF != OF) IP = A;
+jnge	A	(Label)
+		if (SF != OF) IP = A;
+jnl	A	(Label)
+		if (SF == OF) IP = A;
+jnle	A	(Label)
+		if (SF == OF && !ZF) IP = A;
+jno	A	(Label)
+		if (OF) IP = A;
+jnp	A	(Label)
+		if (!PF) IP = A;
+jns	A	(Label)
+		if (!SF) IP = A;
+jnz	A	(Label)
+		if (!ZF) IP = A;
+jo	A	(Label)
+		if (OF) IP = A;
+jp	A	(Label)
+		if (PF) IP = A;
+jpe	A	(Label)
+		if (PF) IP = A;
+jpo	A	(Label)
+		if (!PF) IP = A;
+js	A	(Label)
+		if (SF) IP = A;
+jz	A	(Label)
+		if (ZF) IP = A;
+lahf		AH = SF:ZF:0:AF:0:PF:1:CF
+lds	A, B	(R, m)
+		DS:A = *(dword *)RAM[B];	// A = *(word *)RAM[B}, DS = *(word *)RAM[B + 2];
+lea	A, B	(R, m)
+		A = offset B;
+les	A, B	(R, m)
+		ES:A = *(dword *)RAM[B];
+lodsb		AL = DS:[SI]; if (DF) SI--; else SI++;
+lodsw		AX = DS:[SI]; if (DF) SI -= 2; else SI += 2;
+loop	A	(Label)
+		if (--CX != 0) IP = A;
+loope	A	(Label)
+		if (--CX != 0 && ZF) IP = A;
+loopne	A	(Label)
+		if (--CX != 0 && !ZF) IP = A;
+loopnz	A	(Label)
+		if (--CX != 0 && !ZF) IP = A;
+loopz	A	(Label)
+		if (--CX != 0 && ZF) IP = A;
+mov	A, B	(R, m); (m, R); (R, R); (m, i); (R, i); (S, m); (m, S); (R, S); (S, R)
+		A = B;
+movsb		ES:[DI] = DS:[SI]; if (DF) SI--, DI--; else SI++, DI++;
+movsw		ES:[DI] = DS:[SI]; if (DF) SI -= 2, DI -= 2; else SI += 2, DI += 2;
+mul	A	(R); (m)
+		Byte: AX = AL*A, OF = CF = (AH == 0);
+		Word: DX:AX = AX*A, OF = CF = (DX == 0);
+neg	A	(R); (m)
+		A = 1 + ~A; (ZF,SF,PF) are set; (CF,OF,AF) are set
+nop		;
+not	A	(R); (m)
+		A = ~A
+or	A, B	(R, m); (m, R); (R, R); (m, i); (R, i)
+		A |= B, OF = CF = false; (ZF,SF,PF) are set;
+out	A, B	(Ib, AL); (Ib, AX); (DX, AL); (DX, AX)
+		Byte: *(byte *)PRAM[A] = B;
+		Word: *(word *)PRAM[A] = B;
+pop	A	(R); (S); (m)
+		A = SS:[SP], SP += 2;
+popa		pop DI, SI, BP, __, BX, DX, CX, AX;
+popf		FLAG = SS:[SP], SP += 2;
+push	A	(R); (S); (m); (i)
+		SP -= 2; SS:[SP] = A;
+pusha		push AX, CX, DX, BX, SP, BP, SI, DI;
+pushf		SP -= 2; SS:[SP] = FLAGS;
+rcl	A, B	(m,i); (R,i); (m,CL); (R,CL)
+		Word:	OF = (A >> 15)&1;
+			for (b = 0; b < B; b++) (CF, A) = ((A >> 15)&1, (A << 1) | CF)
+			OF = OF ^ (A >> 15)&1;
+		Byte:	OF = (A >> 7)&1;
+			for (b = 0; b < B; b++) (CF, A) = ((A >> 7)&1, (A << 1) | CF)
+			OF = OF ^ (A >> 7)&1;
+rcl	A, B	(m,i); (R,i); (m,CL); (R,CL)
+		Word:	for (b = 0; b < B; b++) (CF, A) = (A&1, (CF << 15) | (A >> 1))
+			if (A keeps its original size) OF = false;
+		Byte:	for (b = 0; b < B; b++) (CF, A) = (A&1, (CF << 7) | (A >> 1))
+			if (A keeps its original sign) OF = false;
+rep	Op	(Operation): may be movsb, movsw, lodsb, lodsw, stosb, stosw
+		for (; CX > 0; CX--) Op;
+repe	Op	(Operation): may be cmpsb, cmpsw, scasb, scasw
+		if (CX > 0) do Op, CX--; while (ZF && CX > 0);
+repne	Op	(Operation): may be cmpsb, cmpsw, scasb, scasw
+		if (CX > 0) do Op, CX--; while (!ZF && CX > 0);
+repnz	Op	(Operation): may be cmpsb, cmpsw, scasb, scasw
+		if (CX > 0) do Op, CX--; while (!ZF && CX > 0);
+repz	Op	(Operation): may be cmpsb, cmpsw, scasb, scasw
+		if (CX > 0) do Op, CX--; while (ZF && CX > 0);
+ret	A	(); (i)
+		pop IP; if (A != 0) SP += A;
+retf	A	(); (i)
+		pop IP, CS; if (A != 0) SP += A;
+rol	A, B	(m, i); (R, i); (m, CL); (R, CL)
+		Word:	for (b = 0; b < B; b++) CF = (A >> 15)&1, A = CF | (A << 1);
+			if (A keeps its original size) OF = false;
+		Byte:	for (b = 0; b < B; b++) CF = (A >> 7)&1, A = CF | (A << 1);
+			if (A keeps its original sign) OF = false;
+ror	A, B	(m, i); (R, i); (m, CL); (R, CL)
+		Word:	for (b = 0; b < B; b++) CF = A&1, A = (CF << 15) | (A >> 1);
+			if (A keeps its original size) OF = false;
+		Byte:	for (b = 0; b < B; b++) CF = A&1, A = (CF << 7) | (A >> 1);
+			if (A keeps its original sign) OF = false;
+sahf		FLAGS = AH, (SF,ZF,AF,PF,CF) = ((FLAGS>>7)&1, (FLAGS>>6)&1, (FLAGS>>4)&1, (FLAGS>>2)&1, FLAGS&1)
+sal	A, B	(m, i); (R, i); (m, CL); (R, CL)
+		Word:	for (b = 0; b < B; b++) CF = (A >> 15)&1, A = (A&~0x8000) << 1;
+			if (A keeps its original sign) OF = false;
+		Byte:	for (b = 0; b < B; b++) CF = (A >> 7)&1, A = (A&~0x80) << 1;
+			if (A keeps its original sign) OF = false;
+sar	A, B	(m, i); (R, i); (m, CL); (R, CL)
+		Word:	for (b = 0; b < B; b++) CF = A&1, A = (A&0x8000) | (A >> 1);
+			if (A keeps its original sign) OF = false;
+		Byte:	for (b = 0; b < B; b++) CF = A&1, A = (A&0x80) | (A >> 1);
+			if (A keeps its original sign) OF = false;
+sbb	A, B	(R, m); (m, R); (R, R); (m, i); (R, i)
+		A -= B + CF; (ZF,SF,PF) are set; (CF,OF,AF) are set
+scasb		(void)(ES:[DI] - AL); (ZF,SF,PF) are set; (CF,OF,AF) are set; if (DF) DI--; else DI++;
+scasw		(void)(ES:[DI] - AX); (ZF,SF,PF) are set; (CF,OF,AF) are set; if (DF) DI -= 2; else DI += 2;
+shl	A, B	(m, i); (R, i); (m, CL); (R, CL)
+		Word:	for (b = 0; b < B; b++) CF = (A >> 15)&1, A = (A&~0x8000) << 1;
+			if (A keeps its original sign) OF = false;
+		Byte:	for (b = 0; b < B; b++) CF = (A >> 7)&1, A = (A&~0x80) << 1;
+			if (A keeps its original sign) OF = false;
+shr	A, B	(m, i); (R, i); (m, CL); (R, CL)
+		Word:	for (b = 0; b < B; b++) CF = A&1, A >>= 1;
+			if (A keeps its original sign) OF = false;
+		Byte:	for (b = 0; b < B; b++) CF = A&1, A >>= 1;
+			if (A keeps its original sign) OF = false;
+stc		CF = true;
+std		DF = true;
+sti		IF = true;
+stosb		ES:[DI] = AL; if (DF) DI--; else DI++;
+stosw		ES:[DI] = AW; if (DF) DI -= 2; else DI += 2;
+sub	A, B	(R, m); (m, R); (R, R); (m, i); (R, i)
+		A -= B; (ZF,SF,PF) are set; (CF,OF,AF) are set
+test	A, B	(R, m); (m, R); (R, R); (m, i); (R, i)
+		(void)(A&B), OF = CF = false, (ZF,SF,PF) are set
+xchg	A, B	(R, m); (m, R); (R, R)
+		(A, B) = (B, A)
+xlatb		AL = DS:[BX + (unsigned)AL];
+xor	A, B	(R, m); (m, R); (R, R); (m, i); (R, i)
+		A ^= B, OF = CF = false, (ZF,SF,PF) are set

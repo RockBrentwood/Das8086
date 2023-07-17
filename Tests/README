@@ -1,0 +1,6 @@
+Test files for different disassemblers
+∙	Test.asm: the original assembly program.
+∙	Test.obj: the assembled object file.
+∙	Test.bin: the object file with the header stripped off.
+∙	TestA.s: disassembly from ndisasm.
+∙	TestB.s: disassembly from DisAsm86, via DosBox.

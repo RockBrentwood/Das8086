@@ -1,0 +1,69 @@
+For the 80x86, being a descendant of the 8080/8085, instructions were essentially coded in octal with octal digits
+	aa bbb ccc	xx rrr mmm	⋯
+that we denote \abc and \xrm below.
+In some cases (like the conditional jumps), the coding is better-expressed as two hexadecimal digits
+	hhhh llll
+that we express as \xhl.
+
+In most cases, where was one opcode byte to encode an instruction, with an "xrm" byte to encode the operands, in some cases,
+and additional bytes to supplement this. For many opcodes, the "c" octal digit comprised bits
+	cdw	d: operation direction (to/from), w: operand size (byte versus word).
+	d:	Operation direction 1: (x,m) ⇒ r, 0: r ⇒ (x,m)
+	s:	(In place of d) 1: 1-signed-byte of immediate data, 2: 2 bytes of immediate data
+	w:	Operand size 1: word, 0: byte
+The digits in the second operator byte - with present - were more traditionally labelled
+	Memory or Register Address: xx = mod (addressing mode), mmm = r/m (register or memory access)
+	Register Address: rrr = reg (register)
+In some cases, the rrr octal digit was used to encode the operator, itself.
+
+Extra data (the ⋯) could be byte or word sized.
+In the 80x86, word sized operators are stored in the order: low-order-byte, high-order-byte
+
+Operators may also have prefixes: the "repeat" prefixes, "segment overrides", "lock", "wait", operand or operator 16/32 bit switch.
+
+Repetition
+	\362	repne/repnz
+	\363	rep/repe/repz
+Lock
+	\360	lock
+Segment Overrides
+	\046	ES:
+	\056	CS:
+	\066	SS:
+	\076	DS:
+Size Overrides (they apparently have no official mnemonic names)
+	\146	RAND - for operands
+	\147	ADDR - for addresses
+	Example:
+		16-bit mode		32-bit mode		Operation
+		\213 \x07		\147 \146 \213 \x03	mov AX, [BX]
+		\146 \213 \x07		\147 \213 \x07		mov EAX, [BX]
+		\147 \213 \x03		\146 \213 \x03		mov AX, [EBX]
+		\147 \146 \213 \x03	\213 \x03		mov EAX, [EBX]
+	In effect:
+		in overriding from 16 to 32 bit mode → RAND:AX = EAX, [ADDR:BX] = [EBX]
+		in overriding from 32 to 16 bit mode ⇒ RAND:EAX = AX, [ADDR:EBX] = [BX]
+xrm Byte:
+	r	0	1	2	3	4	5	6	7
+	w=0	AL	CL	DL	BL	AH	CH	DH	BH
+	w=1	AX	CX	DX	BX	SP	BP	SI	DI
+	seg	ES	CS	SS	DS
+
+	(x,m)=(0,6) Dw	⇒	Dw address
+	x=0		⇒	D = 0 (m ≠ 6)
+	x=1		⇒	D = 8-bits, signed
+	x=2		⇒	D = 16-bits
+	x=3		⇒	m = register, as above, in place of r
+	m=0		⇒	[BX+SI+D], x ≠ 3
+	m=1		⇒	[BX+DI+D], x ≠ 3
+	m=2		⇒	[BP+SI+D], x ≠ 3
+	m=3		⇒	[BP+DI+D], x ≠ 3
+	m=4		⇒	[SI+D], x ≠ 3
+	m=5		⇒	[DI+D], x ≠ 3
+	m=6		⇒	[BP+D], x ≠ 0 & x ≠ 3
+	m=7		⇒	[BX+D], x ≠ 3
+	m	0	1	2	3	4	5	6	7
+	x=0	[BX+SI]
+	x=1
+	x=2
+	x=3

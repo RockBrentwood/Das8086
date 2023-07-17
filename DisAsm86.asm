@@ -1,1467 +1,1038 @@
-.MODEL small
-.STACK 100h
-.DATA
- 
-LAST_COMMAND equ LIST_41
+.model small
+.stack 100h
+.data
 
-poslinkisORG dw 100h
- 
-ok db 13, 10, 'File written successfully.', 13, 10, '$'
-noFileMsg db 13, 10, 'No such file: ', '$'
-InvalidParameters db 13, 10, 'Invalid arguments', 13, 10, '$'
-Info db 13, 10, 'Made by Justas Glodenis', 13, 10, 'Arguments to use in order: ', 13, 10, 'arg 1: sourceFile - file to disassemble', 13, 10, 'arg 2: destinationFile - output for disassembled code', 13, 10, 'example: ', 96, 'disasm sourceFile.com destinationFile.txt', 96, '$'
-                                                                                                                                                                                                                      
-file1 db 20 dup(0), '$'
-rezFile db 20 dup(0) 
-
-duom1 db 255 dup(0)
-rez db 60 dup(32), '$'
-
-nl db 10, 13, '$'  
-
-IsReg16 db 0
-IsRegSEGMENT db 0
-IsPoslinkis db 0
+ListEnd equ List41
+PosLinkisOrg dw 100h
+Ok db 13, 10, 'File written successfully.', 13, 10, '$'
+NoSuchFile db 13, 10, 'No such file: ', '$'
+InvalidArguments db 13, 10, 'Invalid arguments', 13, 10, '$'
+Banner db 13, 10, 'Made by Justas Glodenis', 13, 10, 'Arguments to use in order: ', 13, 10, 'arg 1: sourceFile - file to disassemble', 13, 10, 'arg 2: destinationFile - output for disassembled code', 13, 10, 'example: ', 96, 'disasm sourceFile.com destinationFile.txt', 96, '$'
+File1 db 20 dup(0), '$'
+RezFile db 20 dup(0)
+Duom1 db 255 dup(0)
+Rez db 60 dup(32), '$'
+Eol db 10, 13, '$'
+IsRw db 0
+IsRs db 0
+IsPosLinkis db 0
 IsComJump db 0
-safeDX dw 0
-sx db 16  
-nr dw 9
-byteNumber dw 0
-fileHandler dw 0
-
-;            0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
-komandos db 'MOV PUSHPOP ADD INC SUB DEC CMP MUL DIV CALLRET JMP LOOPINT   :     '
-jump db     'JO  JNO JB  JNB JE  JNE JNA JA  JS  JNS JP  JNP JL  JGE JLE JG  '
-allRegs db 'ALCLDLBLAHCHDHBHAXCXDXBXSPBPSIDI'
-segRegs db 'ESCSSSDS'
-
-;			  0       1       2       3       4       5       6       7       
-regMemory db '[BX+SI] [BX+DI] [BP+SI] [BP+DI] [SI]    [DI]    [BP]    [BX]    '
-
-
-       ;      0          1        2  3   4   5   6    7       8       9      
-	  ;  HAS or IS:   comBytes   MOD d   w   s  XCM  comNR   reg    p/bop
-LIST_01 db 00000000b, 11111100b, 01, 01, 01, 00, 000b, 03, 00000000b, 00
-LIST_02 db 00000100b, 11111110b, 00, 00, 01, 00, 000b, 03, 00000000b, 01
-LIST_03 db 00101000b, 11111100b, 01, 01, 01, 00, 000b, 05, 00000000b, 00
-LIST_04 db 00101100b, 11111110b, 00, 00, 01, 00, 000b, 05, 00000000b, 01
-LIST_05 db 00111000b, 11111100b, 01, 01, 01, 00, 000b, 07, 00000000b, 00
-LIST_06 db 00111100b, 11111110b, 00, 00, 01, 00, 000b, 07, 00000000b, 01
-
-LIST_07 db 01000000b, 11111000b, 00, 00, 03, 00, 000b, 04, 00000111b, 00
-LIST_08 db 01001000b, 11111000b, 00, 00, 03, 00, 000b, 06, 00000111b, 00
-LIST_09 db 01010000b, 11111000b, 00, 00, 03, 00, 000b, 01, 00000111b, 00
-LIST_10 db 01011000b, 11111000b, 00, 00, 03, 00, 000b, 02, 00000111b, 00
-
-LIST_11 db 00000110b, 11100111b, 00, 00, 00, 00, 000b, 01, 00011000b, 00
-LIST_12 db 00000111b, 11100111b, 00, 00, 00, 00, 000b, 02, 00011000b, 00
-
-LIST_13 db 00100110b, 11100111b, 00, 00, 00, 00, 000b, 15, 00011000b, 00
-
-LIST_14 db 10001000b, 11111100b, 01, 01, 01, 00, 000b, 00, 00000000b, 00
-LIST_15 db 10001100b, 11111101b, 01, 01, 03, 00, 000b, 00, 00011000b, 00
-
-LIST_16 db 10110000b, 11110000b, 00, 00, 00, 00, 000b, 00, 00001111b, 01
-
-LIST_17 db 10100000b, 11111100b, 00, 01, 01, 00, 000b, 00, 00100000b, 00
-
-LIST_18 db 11001101b, 11111111b, 00, 00, 00, 00, 000b, 14, 10000000b, 01
-LIST_19 db 11000011b, 11111111b, 00, 00, 00, 00, 000b, 11, 10000000b, 00 
-LIST_20 db 11000010b, 11111111b, 00, 00, 00, 00, 000b, 11, 10000000b, 02 
-LIST_21 db 10011010b, 11111111b, 00, 00, 00, 00, 000b, 10, 10000000b, 04
-LIST_22 db 11101010b, 11111111b, 00, 00, 00, 00, 000b, 12, 10000000b, 04
-
-LIST_23 db 01110000b, 11110000b, 00, 00, 00, 00, 000b, 16, 10000000b, 00 ;isimtis
-
-LIST_24 db 11101000b, 11111111b, 00, 00, 00, 00, 000b, 10, 10000000b, 20h
-LIST_25 db 11101001b, 11111111b, 00, 00, 00, 00, 000b, 12, 10000000b, 20h
-LIST_26 db 11101011b, 11111111b, 00, 00, 00, 00, 000b, 12, 10000000b, 10h                                                                                                                 
-LIST_27 db 11100010b, 11111111b, 00, 00, 00, 00, 000b, 13, 10000000b, 10h 
-
-LIST_28 db 11111110b, 11111110b, 02, 00, 01, 00, 000b, 04, 00000000b, 00
-LIST_29 db 11111110b, 11111110b, 02, 00, 01, 00, 001b, 06, 00000000b, 00
-LIST_30 db 11111111b, 11111111b, 02, 00, 03, 00, 010b, 10, 00000000b, 00
-LIST_31 db 11111111b, 11111111b, 02, 00, 04, 00, 011b, 10, 00000000b, 00
-LIST_32 db 11111111b, 11111111b, 02, 00, 02, 00, 100b, 12, 00000000b, 00
-LIST_33 db 11111111b, 11111111b, 02, 00, 03, 00, 101b, 12, 00000000b, 00
-LIST_34 db 11111111b, 11111111b, 02, 00, 03, 00, 110b, 01, 00000000b, 00
-
-LIST_35 db 11110110b, 11111110b, 02, 00, 01, 00, 100b, 08, 00000000b, 00
-LIST_36 db 11110110b, 11111110b, 02, 00, 01, 00, 110b, 09, 00000000b, 00
-LIST_37 db 10001111b, 11111111b, 02, 00, 03, 00, 000b, 02, 00000000b, 00
-
-LIST_38 db 10000000b, 11111100b, 02, 00, 01, 01, 000b, 03, 00000000b, 00
-LIST_39 db 10000000b, 11111100b, 02, 00, 01, 01, 101b, 05, 00000000b, 00
-LIST_40 db 10000000b, 11111100b, 02, 00, 01, 01, 111b, 07, 00000000b, 00
-LIST_41 db 11000110b, 11111110b, 02, 00, 01, 02, 000b, 00, 00000000b, 00
-
-.code          
-
-mov ax, @data
-mov ds, ax	
-
-mov bx, 81h  ; pirmas simbolio parametre adresas  
-
-cmp byte ptr es:[bx], 13
-je skip 
-
-mov dl, es:[bx + 1]
-cmp dl, 13
-je skip
-
-cmp dl, '/'
-jne testi
- 
-mov dl, es:[bx + 2]
-cmp dl, '?'
-jne wrongParams  
-              
-skip:              
-              
-jmp WriteInfo
-
-testi:
-
-               ; Nuskaito dvieju failu vardus
-inc bx  
-mov di, offset file1 
-call ReadFileName 
-
-cmp cl, 'E'
-je wrongParams
-           
-              
-          
-inc bx           
-mov di, offset rezFile 
-call ReadFileName 
-
-cmp cl, 'E'
-je wrongParams
-
-; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-              ; Nuskaito duomenis is failo
-                     
-                     
-mov dx, offset file1
-mov cx, offset duom1  
-call ReadFile    
-push cx   
-
-cmp cl, 'F'
-je noFile
-                     
-                ; Atlieka skaiciavimus
-
-mov bx, byteNumber     
-
-call OpenFile
-   
-CiklasDisasm:     
-    
-	mov bx, byteNumber
-	pop cx
-	
-	cmp bx, cx
-    jge endDisasm
-    push cx    
-	
-	mov si, offset duom1
-	mov di, offset rez    
-	
-    mov dh, 0
-    mov dl, [si][bx]  
-          
-                ; nulina reikesmes ir padeda \N zenkla
-    push bx         
-    mov bx, 0
-    nulinaReiksmes:
-    
-        mov byte ptr [di][bx], 32
-        inc bx
-    
-        cmp bx, 62
-        jge poNulinaReiksmes
-    
-    jmp nulinaReiksmes
-    poNulinaReiksmes:
-                            ;--
-         
-         
-    mov byte ptr [di][60], 10
-    pop bx 
-    
-	mov nr, 9
-    call CheckCommandByte               
-    call WriteLine    
-    
-    inc byteNumber
-	inc bx
-	
-    jmp CiklasDisasm
-
-endDisasm:    
-
-call CloseFile
-
-                ; Iraso i faila
-               
-mov dx, offset ok
-mov ah, 09h
-int 21h 
-
-jmp exit
-               
-wrongParams:
-
-mov dx, offset InvalidParameters
-mov ah, 09h
-int 21h 
-  
-jmp exit 
-    
-WriteInfo:           
-           
-mov dx, offset Info
-mov ah, 09h
-int 21h
-
-jmp exit    
-    
-noFile:
-           
-push dx
-           
-mov dx, offset noFileMsg
-mov ah, 09h
-int 21h 
-
-pop dx
-mov ah, 09h
-int 21h 
-
-mov dx, offset nl
-mov ah, 09h
-int 21h 
-       
-Exit: 
-                        
-mov ax, 4c00h
-int 21h    
-
-
- 
-                     
-                     
-ReadFileName PROC    ;------------------------------------------
-     
-mov cl, 'F' 
-mov dx, 0         
-                            
-Reallocate:
-       
-mov al, es:bx 
-
-
-cmp al, 32 
-je Allocated   
-
-cmp al, 0  
-je Allocated 
-  
-cmp al, 13 
-je Allocated
-
-push bx
-mov bx, dx
-mov [di][bx], al
-pop bx    
-
-inc bx  
-inc dx
-
-jmp Reallocate
-      
-      
-Allocated:
-
-cmp dx, 1
-jle FileError 
-
-mov cl, 'T'
-jmp return2
-      
-      
-FileError:
-
-mov cl, 'E'
-    
-    
-return2: 
-
-ret    
-ReadFileName ENDP   ;-------------------------------------------            
-                                                                  
-                                                                  
-                                                                  
-ReadFile PROC    ;------------------------------------------
-     
-mov ah, 3Dh ;open
-mov al, 02h
-int 21h    
-
-jnc read   ; CF = 0 (no error)
-
-mov cl, 'F'
-jmp readReturn
-
-read:
-
-mov bx, ax      ; File Handler
-
-mov dx, cx
-mov cx, 255
-mov ah, 3Fh ;read
-int 21h   
-
-mov cx, ax
-
-mov ah, 3Eh ;close
-int 21h  
-
-readReturn:
-
-ret    
-ReadFile ENDP   ;-------------------------------------------        
-                                             
-                                             
-                                             
-OpenFile PROC    ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-push ax
-push dx
-
-mov cx, 01000000b     
-mov dx, offset rezFile      
-            
-mov ah, 3Ch ;Create
-int 21h            
-            
-mov fileHandler, ax
-
-pop dx
-pop ax
-
-ret    
-OpenFile ENDP     
-
-WriteLine PROC   
-                   
-push bx   
-push dx             
-                   
-mov bx, fileHandler ; FileHandler 
-
-mov dx, offset rez
-mov cx, 61
-mov ah, 40h ;Write
-int 21h   
-
-mov dx, offset rez
-mov ah, 09h
-int 21h
-       
-pop dx
-pop bx
-
-ret    
-WriteLine ENDP  
-
-CloseFile PROC   
-
-push bx
-push ax
-                        
-mov bx, fileHandler
-
-mov ah, 3Eh ;close
-int 21h
-       
-pop ax       
-pop bx
-
-ret    
-CloseFile ENDP   ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
-
-                                              
-                                              
-;###################################################################
-CheckCommandByte PROC    ;------------------------------------------    
-			; args: dl - byte, bx - byte address
-	
-	call WriteAddress                       
-	
-	mov dh, dl
-	mov safeDX, dx
-	
-	mov si, offset LIST_01
-	
-	CheckCiklas:
-		mov dx, safeDX
-		
-		mov al, [si + 1]
-		and dl, al
-		mov al, [si]
-		
-		cmp dl, al
-		jne skipComPletinys
-			cmp byte ptr [si + 2], 2
-			jne CommandFound
-				call ReadOneMoreByte
-				mov safeDX, dx
-				and dl, 00111000b
-				shr dl, 3
-				sub si, 10
-				CheckCiklas2:
-					add si, 10
-					cmp [si + 6], dl
-					je CommandFound
-				jmp CheckCiklas2
-		skipComPletinys:
-		
-		mov ax, offset LAST_COMMAND
-		cmp si, ax
-		jge NoCommand1
-		
-		add si, 10
-	jmp CheckCiklas
-	
-	NoCommand1:
-	jmp NoCommand
-	
-	CommandFound:
-		mov al, [si + 7]
-		call WriteCommand
-		
-		and dl, 11110000b
-		cmp dl, 01110000b
-		jne skipConditionalJMP
-				; CONDITIONAL JUMPS
-			mov IsComJump, 1
-			mov al, dh
-			and al, 00001111b
-			call WriteCommand
-			mov ax, 30
-			mov IsPoslinkis, 1
-			call WriteJumpPoslinkis
-			jmp RetOfCheck
-		skipConditionalJMP:
-		mov dl, dh
-		
-		
-		mov al, [si + 8]
-		cmp al, 10000000b
-		jne skipNoReg
-			; Command with no reg
-			mov al, [si + 9]
-			cmp al, 0
-			je endNoReg
-			
-			cmp al, 4
-			je callException
-			
-			cmp al, 0Fh
-			jg skipFreeOpernad 
-					; Free Operand
-				mov IsPoslinkis, al
-				mov ax, 30
-				call WriteFreeOperand
-				jmp endNoReg
-				
-			skipFreeOpernad:	
-					; Poslinkis
-				and al, 11110000b
-				shr al, 4
-				mov IsPoslinkis, al
-				mov ax, 30
-				call WriteJumpPoslinkis
-				jmp endNoReg
-				
-			callException:
-				mov IsPoslinkis, 2
-				mov ax, 37
-				call WriteFreeOperand
-				
-				mov IsPoslinkis, 2
-				mov ax, 30
-				call WriteFreeOperand
-				
-				mov byte ptr [di + 36], ':'	
-			endNoReg:
-			jmp RetOfCheck
-		skipNoReg:
-		
-		mov IsRegSEGMENT, 0
-		
-		mov al, [si + 8]	;@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-		cmp al, 00011000b
-		jne skipAddRegSeg
-			; Has seg reg here
-			
-			mov IsRegSEGMENT, 1
-			
-			mov al, [si + 2]
-			cmp al, 1			; if it has MOD, skip adding segment now
-			je skipAddRegSeg 	; MOD will do it 
-			
-			mov al, [si + 7]
-			cmp al, 15
-			jne skipSegmentoKeitimas
-			
-					;segmento keitimo komanda
-				mov ax, 24
-				call WriteSegReg
-				jmp RetOfCheck
-			skipSegmentoKeitimas:
-			
-					;eiline komanda su segmento registru
-				mov ax, 30
-				call WriteSegReg
-				jmp RetOfCheck
-		skipAddRegSeg:
-		
-		
-		mov al, [si + 8]	;@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-		cmp al, 00100000b
-		jne SkipAtmintisAX
-			
-			mov IsReg16, 0
-			call Check8or16Reg
-			
-			mov al, [si + 3]
-			cmp al, 1
-			jne AtmintisAXReverse
-				and dl, 00000010b
-				cmp dl, 00000000b
-				je AtmintisAXReverse
-						;NOrmal
-					mov ax, 30
-					call WriteDirectAddress
-					
-					mov [di + 38], ' ,'
-					
-					mov dl, dh
-					mov al, [si + 8]
-					and dl, al
-					and dl, 00001111b
-					or dl, IsReg16
-					mov ax, 40
-					call WriteReg
-						
-					jmp skip01
-				AtmintisAXReverse:
-						;Reverse
-					mov ax, 34
-					call WriteDirectAddress
-					
-					mov [di + 32], ' ,'
-					
-					mov dl, dh
-					mov al, [si + 8]
-					and dl, al
-					and dl, 00001111b
-					or dl, IsReg16
-					mov ax, 30
-					call WriteReg
-			skip01:
-			jmp RetOfCheck
-		SkipAtmintisAX:
-		
-		
-		mov al, [si + 2]
-		cmp al, 0
-		je NoMod
-		Jmp HasMOD
-		
-		NoMod:
-			;no MOD here..............................................
-
-			; word or byte		
-			mov al, [si + 4]
-			
-			cmp al, 2
-			je Reg8
-			
-			cmp al, 3
-			je Reg16
-			
-			cmp  al, 1
-			jne skip02
-				and dl, 00000001b
-				cmp dl, 1
-				je Reg16
-			jmp Reg8
-			skip02:
-			
-			mov dl, dh
-			mov al, [si + 8]
-			and dl, al
-			cmp dl, 00000111b
-			jg Reg16
-			
-			Reg8:
-				mov dl, dh
-				mov al, [si + 8]
-				and dl, al
-				
-				mov ax, 30
-				call WriteReg
-				
-				mov al, [si + 9]
-				cmp al, 1
-				jne skip2
-					; has free operand
-					call ReadOneMoreByte
-					mov [di + 35], ax
-					
-					mov [di + 32], ' ,'
-					mov byte ptr[di + 34], '0'
-					mov byte ptr[di + 37], 'h'
-				
-				jmp skip2
-			Reg16:
-				mov dl, dh
-				mov al, [si + 8]
-				and dl, al
-				or dl, 00001000b
-				
-				mov ax, 30
-				call WriteReg
-				
-				mov al, [si + 9]
-				cmp al, 1
-				jne skip2
-					; has two free operands
-					call ReadOneMoreByte
-					mov [di + 37], ax
-					
-					call ReadOneMoreByte
-					mov [di + 35], ax	
-					
-					mov [di + 32], ' ,'
-					mov byte ptr[di + 34], '0'
-					mov byte ptr[di + 39], 'h'
-									
-			skip2:
-		jmp RetOfCheck
-		HasMOD:
-			; has MOD here............................................
-			
-			cmp byte ptr [si + 2], 2
-			jne skipMOD2
-				call checkMOD2
-				jmp RetOfCheck
-			skipMOD2:
-			
-			call ReadOneMoreByte
-			call checkMOD
-
-	jmp RetOfCheck
-	
-	NoCommand:
-	
-	
-RetOfCheck:                    
-ret    
-CheckCommandByte ENDP   ;-------------------------------------------  
-;###################################################################
-       
-       
-       
-       
-       
-       
-       
-ValueToHex PROC    ;------------------------------------------
-                      ;arguments: dl - 1byte value to change
-mov ah, 0
-mov al, dl
-
-div sx
-
-cmp al, 9
-jg raide
-
-add al, 48
-jmp antrasSimbolis
-
-raide:
-add al, 55
-
-antrasSimbolis:
-
-cmp ah, 9
-jg raide2
-
-add ah, 48
-jmp hexEnd
-
-raide2:
-add ah, 55
-jmp hexEnd
-
-hexEnd:
-           
-ret    
-ValueToHex ENDP   ;------------------------------------------- 
-
-
-WriteAddress PROC    ;------------------------------------------
-                      ;arguments: bx - address
-push bx
-push dx
-
-mov bx, byteNumber
-add bx, poslinkisORG
-
-mov dl, bh
-call ValueToHex
-mov [di + 0], ax
-                   
-mov dl, bl
-call ValueToHex
-mov [di + 2], ax
-                   
-mov byte ptr [di + 4], ':'                   
-                             
-pop dx			; also writes the first byte
-pop bx
-
-call ValueToHex
-mov [di + 6], ax
-          
-ret    
-WriteAddress ENDP   ;------------------------------------------- 
-
-WriteCommand PROC
-				; arguments: al - command num
-push si
-push bx
-
-mov si, offset komandos
-
-cmp IsComJump, 1
-jne skipComJump
-	mov si, offset jump
-	mov IsComJump, 0
-skipComJump:
-
-mov ah, 0
-mov bx, ax
-
-shl bx, 2
-
-mov ax, [si][bx]
-mov [di + 24], ax
-
-add bx, 2
-mov ax, [si][bx]
-mov [di + 26], ax
-
-pop bx
-pop si
-
+SafeDX dw 0
+Hex db 10h
+Nr dw 9
+ByteNumber dw 0
+FileHandler dw 0
+
+;;           0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
+Command db 'MOV PUSHPOP ADD INC SUB DEC CMP MUL DIV CALLRET JMP LOOPINT   :     '
+Jcc     db     'JO  JNO JB  JNB JE  JNE JNA JA  JS  JNS JP  JNP JL  JGE JLE JG  '
+RegName db 'ALCLDLBLAHCHDHBHAXCXDXBXSPBPSIDI'
+SegName db 'ESCSSSDS'
+
+;;		  0       1       2       3       4       5       6       7
+RegMode db '[BX+SI] [BX+DI] [BP+SI] [BP+DI] [SI]    [DI]    [BP]    [BX]    '
+
+	;;      0          1        2  3   4   5   6    7       8       9
+	;;  HAS or IS:   comBytes   MOD d   w   s  XCM  comNR   reg    p/bop
+List01 db 00000000b, 11111100b, 01, 01, 01, 00, 000b, 03, 00000000b, 00
+List02 db 00000100b, 11111110b, 00, 00, 01, 00, 000b, 03, 00000000b, 01
+List03 db 00101000b, 11111100b, 01, 01, 01, 00, 000b, 05, 00000000b, 00
+List04 db 00101100b, 11111110b, 00, 00, 01, 00, 000b, 05, 00000000b, 01
+List05 db 00111000b, 11111100b, 01, 01, 01, 00, 000b, 07, 00000000b, 00
+List06 db 00111100b, 11111110b, 00, 00, 01, 00, 000b, 07, 00000000b, 01
+List07 db 01000000b, 11111000b, 00, 00, 03, 00, 000b, 04, 00000111b, 00
+List08 db 01001000b, 11111000b, 00, 00, 03, 00, 000b, 06, 00000111b, 00
+List09 db 01010000b, 11111000b, 00, 00, 03, 00, 000b, 01, 00000111b, 00
+List10 db 01011000b, 11111000b, 00, 00, 03, 00, 000b, 02, 00000111b, 00
+List11 db 00000110b, 11100111b, 00, 00, 00, 00, 000b, 01, 00011000b, 00
+List12 db 00000111b, 11100111b, 00, 00, 00, 00, 000b, 02, 00011000b, 00
+List13 db 00100110b, 11100111b, 00, 00, 00, 00, 000b, 15, 00011000b, 00
+List14 db 10001000b, 11111100b, 01, 01, 01, 00, 000b, 00, 00000000b, 00
+List15 db 10001100b, 11111101b, 01, 01, 03, 00, 000b, 00, 00011000b, 00
+List16 db 10110000b, 11110000b, 00, 00, 00, 00, 000b, 00, 00001111b, 01
+List17 db 10100000b, 11111100b, 00, 01, 01, 00, 000b, 00, 00100000b, 00
+List18 db 11001101b, 11111111b, 00, 00, 00, 00, 000b, 14, 10000000b, 01
+List19 db 11000011b, 11111111b, 00, 00, 00, 00, 000b, 11, 10000000b, 00
+List20 db 11000010b, 11111111b, 00, 00, 00, 00, 000b, 11, 10000000b, 02
+List21 db 10011010b, 11111111b, 00, 00, 00, 00, 000b, 10, 10000000b, 04
+List22 db 11101010b, 11111111b, 00, 00, 00, 00, 000b, 12, 10000000b, 04
+List23 db 01110000b, 11110000b, 00, 00, 00, 00, 000b, 16, 10000000b, 00 ;; isimtis
+List24 db 11101000b, 11111111b, 00, 00, 00, 00, 000b, 10, 10000000b, 20h
+List25 db 11101001b, 11111111b, 00, 00, 00, 00, 000b, 12, 10000000b, 20h
+List26 db 11101011b, 11111111b, 00, 00, 00, 00, 000b, 12, 10000000b, 10h
+List27 db 11100010b, 11111111b, 00, 00, 00, 00, 000b, 13, 10000000b, 10h
+List28 db 11111110b, 11111110b, 02, 00, 01, 00, 000b, 04, 00000000b, 00
+List29 db 11111110b, 11111110b, 02, 00, 01, 00, 001b, 06, 00000000b, 00
+List30 db 11111111b, 11111111b, 02, 00, 03, 00, 010b, 10, 00000000b, 00
+List31 db 11111111b, 11111111b, 02, 00, 04, 00, 011b, 10, 00000000b, 00
+List32 db 11111111b, 11111111b, 02, 00, 02, 00, 100b, 12, 00000000b, 00
+List33 db 11111111b, 11111111b, 02, 00, 03, 00, 101b, 12, 00000000b, 00
+List34 db 11111111b, 11111111b, 02, 00, 03, 00, 110b, 01, 00000000b, 00
+List35 db 11110110b, 11111110b, 02, 00, 01, 00, 100b, 08, 00000000b, 00
+List36 db 11110110b, 11111110b, 02, 00, 01, 00, 110b, 09, 00000000b, 00
+List37 db 10001111b, 11111111b, 02, 00, 03, 00, 000b, 02, 00000000b, 00
+List38 db 10000000b, 11111100b, 02, 00, 01, 01, 000b, 03, 00000000b, 00
+List39 db 10000000b, 11111100b, 02, 00, 01, 01, 101b, 05, 00000000b, 00
+List40 db 10000000b, 11111100b, 02, 00, 01, 01, 111b, 07, 00000000b, 00
+List41 db 11000110b, 11111110b, 02, 00, 01, 02, 000b, 00, 00000000b, 00
+
+.code
+   mov AX, @data
+   mov DS, AX
+   mov BX, 81h ;; pirmas simbolio parametre adresas
+   cmp byte ptr ES:[BX], 13
+   je _00f
+      mov DL, ES:[BX + 1]
+      cmp DL, 13
+   je _00f
+      cmp DL, '/'
+      jne _01f
+      mov DL, ES:[BX + 2]
+      cmp DL, '?'
+      jne WrongParams
+   _00f:
+   jmp WriteInfo
+_01f:
+;; Nuskaito dvieju failu vardus
+   inc BX
+   mov DI, offset File1
+   call ReadFileName
+   cmp CL, 'E'
+   je WrongParams
+   inc BX
+   mov DI, offset RezFile
+   call ReadFileName
+   cmp CL, 'E'
+   je WrongParams
+;; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+;; Nuskaito duomenis is failo
+   mov DX, offset File1
+   mov CX, offset Duom1
+   call ReadFile
+   push CX
+   cmp CL, 'F'
+   je NoFile
+;; Atlieka skaiciavimus
+   mov BX, ByteNumber
+   call OpenFile
+   _0b:
+      mov BX, ByteNumber
+      pop CX
+      cmp BX, CX
+      jge _03f
+      push CX
+      mov SI, offset Duom1
+      mov DI, offset Rez
+      mov DH, 0
+      mov DL, [SI][BX]
+   ;; nulina reikesmes ir padeda \N zenkla
+      push BX
+      mov BX, 0
+      _1b:
+         mov byte ptr [DI][BX], 32
+         inc BX
+         cmp BX, 62
+         jge _02f
+      jmp _1b
+   _02f:
+   ;; --
+      mov byte ptr [DI][60], 10
+      pop BX
+      mov Nr, 9
+      call CheckCommandByte
+      call WriteLine
+      inc ByteNumber
+      inc BX
+   jmp _0b
+_03f:
+   call CloseFile
+;; Iraso i faila
+   mov DX, offset Ok
+   mov AH, 09h
+   int 21h
+jmp Exit0
+WrongParams:
+   mov DX, offset InvalidArguments
+   mov AH, 09h
+   int 21h
+jmp Exit0
+WriteInfo:
+   mov DX, offset Banner
+   mov AH, 09h
+   int 21h
+jmp Exit0
+NoFile:
+   push DX
+   mov DX, offset NoSuchFile
+   mov AH, 09h
+   int 21h
+   pop DX
+   mov AH, 09h
+   int 21h
+   mov DX, offset Eol
+   mov AH, 09h
+   int 21h
+Exit0:
+   mov AX, 4c00h
+   int 21h
+
+ReadFileName proc
+   mov CL, 'F'
+   mov DX, 0
+   _2b:
+      mov AL, ES:BX
+      cmp AL, 32
+      je _04f
+      cmp AL, 0
+      je _04f
+      cmp AL, 13
+      je _04f
+      push BX
+      mov BX, DX
+      mov [DI][BX], AL
+      pop BX
+      inc BX
+      inc DX
+   jmp _2b
+_04f:
+   cmp DX, 1
+   jle _05f
+      mov CL, 'T'
+   jmp _06f
+   _05f:
+      mov CL, 'E'
+   _06f:
 ret
-WriteCommand ENDP
+ReadFileName endp
 
-WriteReg PROC    ;------------------------------------------
-        ; args DL - reg nr or Shifted MOD REG R/M, AX - position to write
-push bx
-push dx
-push si
-
-mov bl, IsRegSEGMENT
-cmp bl, 1
-je writeSegment
-
-mov bh, 0
-mov bl, dl    
-   
-shl bx, 1 
-
-mov si, offset allRegs
-
-add di, ax               
-mov bx, [si][bx]  
-mov [di], bx      ; iraso i eilute
-sub di, ax
-
-jmp endWriteReg
-
-writeSegment:
-	mov dx, safeDX
-	call WriteSegReg
-	
-endWriteReg:
-
-pop si
-pop dx
-pop bx                  
-     
-ret    
-WriteReg ENDP   ;-------------------------------------------  
-
-WriteSegReg PROC    ;------------------------------------------
-        ; args DL - ComByte, AX - position to write
-push bx
-push dx
-push si
-
-mov bh, 0
-mov bl, dl    
-
-and bl, 00011000b   
-shr bx, 2 
-
-mov si, offset segRegs
-
-add di, ax               
-mov bx, [si][bx]  
-mov [di], bx      ; iraso i eilute
-sub di, ax
-
-mov IsRegSEGMENT, 0
-
-pop si
-pop dx
-pop bx                  
-     
-ret    
-WriteSegReg ENDP   ;-------------------------------------------  
-
-WriteRegMemory PROC    ;------------------------------------------
-        ; args: DH - ComByte, DL - MOD REG R/M, AX - position to write
-		; return: AX - place to write next
-push bx
-push dx
-push si
-push di
-push ax
-
-mov dx, safeDX    
-mov bx, dx
-
-and bl, 11000111b
-cmp bl, 00000110b ; Tiesioginis adresas, MOD = 00, r/m = 110
-je jmpCallDirectAddress
-
-mov bh, 0
-mov bl, dl
-and bl, 00000111b 
-   
-shl bx, 3 
-
-mov si, offset regMemory
-
-add di, ax         
-mov ax, [si][bx]  
-mov [di], ax   
-
-mov ax, [si][bx + 2]  
-mov [di + 2], ax   
-
-mov ax, [si][bx + 4]  
-mov [di + 4], ax  
- 
-mov ax, [si][bx + 6]  
-mov [di + 6], ax   
-
-and dl, 00000111b
-cmp dl, 4
-
-pop ax
-
-jge moreThan4
-	;less than 5
-	add ax, 7
-	jmp skipToEnd01
-moreThan4:
-	add ax, 4
-	jmp skipToEnd01
-	
-	
-jmpCallDirectAddress:
-	pop	ax
-	call WriteDirectAddress
-	add ax, 8
-			
-skipToEnd01:
-
-pop di
-pop si
-pop dx
-pop bx                  
-     
-ret    
-WriteRegMemory ENDP   ;-------------------------------------------  
-
-WritePoslinkis PROC
-push bx
-push cx
-push dx
-
-mov bx, ax
-
-mov ch, 0
-mov cl, IsPoslinkis
-
-cmp cl, 0
-je endPoslinkis
-	;Yra poslinkis
-	mov [di][bx], '+ ' 
-	mov [di][bx + 2], '0 '
-	add bx, 4
-	
-	cmp cl, 1
-	jne DviejuBaituPoslinkis
-		;Vieno baito poslinkis
-			
-		call ReadOneMoreByte
-		
-		mov [di + bx], ax
-		mov byte ptr [di][bx + 2], 'h'
-		mov ax, bx
-		add ax, 3
-		
-		jmp endPoslinkis
-	
-	DviejuBaituPoslinkis:
-		;Dvieju baitu poslinkis
-
-		call ReadOneMoreByte
-		mov [di][bx + 2], ax
-
-		call ReadOneMoreByte
-		mov [di][bx], ax
-		
-		mov byte ptr [di][bx + 4], 'h'
-		
-		mov ax, bx
-		add ax, 5
-	
-		jmp endPoslinkis
-endPoslinkis:
-
-pop dx
-pop cx
-pop bx
-
-mov IsPoslinkis, 0
-
+ReadFile proc
+   mov AH, 3dh ;; open
+   mov AL, 02h
+   int 21h
+   jnc _07f ;; CF = 0 (no error)
+      mov CL, 'F'
+   jmp _08f
+   _07f:
+      mov BX, AX ;; File Handler
+      mov DX, CX
+      mov CX, 0ffh
+      mov AH, 3fh ;; read
+      int 21h
+      mov CX, AX
+      mov AH, 3eh ;; close
+      int 21h
+   _08f:
 ret
-WritePoslinkis ENDP
+ReadFile endp
 
-WriteDirectAddress PROC
-			;args: ax - place where to write
-push bx
-push cx
-push dx
-
-mov bx, ax
-
-mov [di][bx], '0['
-mov [di][bx + 6], ']h'
-
-call ReadOneMoreByte
-mov [di][bx + 4], ax
-
-call ReadOneMoreByte
-mov [di][bx + 2], ax
-
-mov ax, bx
-
-pop dx
-pop cx
-pop bx
-
+OpenFile proc
+   push AX
+   push DX
+   mov CX, 01000000b
+   mov DX, offset RezFile
+   mov AH, 3ch ;; Create
+   int 21h
+   mov FileHandler, AX
+   pop DX
+   pop AX
 ret
-WriteDirectAddress ENDP
+OpenFile endp
 
-
-WriteFreeOperand PROC
-				; args: IsPoslinkis - num of bytes, AX - place to write
-					;return: AX - symbols written
-push bx
-push cx
-push dx
-
-mov bx, ax
-
-mov ch, 0
-mov cl, IsPoslinkis
-
-cmp cl, 0
-je endOperandas
-	;Yra Operandas
-	
-	cmp cl, 1
-	jg DviejuBaituOperandas
-		;Vieno baito Operandas
-			
-		call ReadOneMoreByte
-		
-		mov byte ptr [di][bx], '0'
-		mov [di][bx + 1], ax
-		mov byte ptr [di][bx + 3], 'h'
-		mov ax, 4
-		
-		jmp endOperandas
-	
-	DviejuBaituOperandas:
-		;Dvieju baitu Operandas
-
-		mov byte ptr [di][bx], '0'
-		
-		call ReadOneMoreByte
-		mov [di][bx + 3], ax
-
-		call ReadOneMoreByte
-		mov [di][bx + 1], ax
-		
-		mov byte ptr [di][bx + 5], 'h'
-		
-		mov ax, 6
-	
-		jmp endOperandas
-endOperandas:
-
-pop dx
-pop cx
-pop bx
-
-mov IsPoslinkis, 0
-
+WriteLine proc
+   push BX
+   push DX
+   mov BX, FileHandler ;; FileHandler
+   mov DX, offset Rez
+   mov CX, 61
+   mov AH, 40h ;; Write
+   int 21h
+   mov DX, offset Rez
+   mov AH, 09h
+   int 21h
+   pop DX
+   pop BX
 ret
-WriteFreeOperand ENDP
+WriteLine endp
 
-
-WriteJumpPoslinkis PROC
-			;args: AX - place to write, IsPoslinkis - bytes poslinkio
-push bx
-push cx
-push dx
-
-mov bx, ax
-
-cmp IsPoslinkis, 0
-je endJumpPoslinkis
-	
-	cmp IsPoslinkis, 1
-	jne DviejuBaituJumpPoslinkis
-		;Vieno baito Jump poslinkis
-			
-		call ReadOneMoreByte
-		
-		mov cx, byteNumber
-		inc cx
-		add cx, poslinkisORG
-		
-		mov dh, 0
-		cmp dl, 080h
-		jb skipNeigiamas
-			mov dh, 0FFh
-		skipNeigiamas:
-		
-		add cx, dx
-		
-		jmp endJumpPoslinkis
-	
-	DviejuBaituJumpPoslinkis:
-		;Dvieju baitu Jump poslinkis
-
-		call ReadOneMoreByte
-		mov dh, dl
-		call ReadOneMoreByte
-		
-		xchg dl, dh
-		
-		mov cx, byteNumber
-		inc cx
-		add cx, poslinkisORG
-		
-		add cx, dx
-endJumpPoslinkis:
-
-mov byte ptr [di][bx + 4], 'h'
-
-mov dl, ch
-call ValueToHex
-mov [di][bx + 0], ax
-
-mov dl, cl
-call ValueToHex
-mov [di][bx + 2], ax
-
-mov IsPoslinkis, 0
-
-pop dx
-pop cx
-pop bx
-
+CloseFile proc
+   push BX
+   push AX
+   mov BX, FileHandler
+   mov AH, 3eh ;; close
+   int 21h
+   pop AX
+   pop BX
 ret
-WriteJumpPoslinkis ENDP
+CloseFile endp
 
-
-ReadOneMoreByte PROC
-			; arguments: bx - last command num
-			; nr   --- where to put byte in line
-			; return -- AX, byte in hex, DL - byte
-	push si
-	push bx
-	
-	mov bx, byteNumber
-	inc bx
-	
-	mov si, offset duom1
-    mov dl, [si][bx]
-	
-	mov byteNumber, bx
-	
-	mov bx, nr
-    call ValueToHex
-    mov [di][bx], ax 
-
-	add bx, 3
-	mov nr, bx
-	
-	pop bx
-	pop si
+CheckCommandByte proc ;; DL: byte, BX: byte address
+   call WriteAddress
+   mov DH, DL
+   mov SafeDX, DX
+   mov SI, offset List01
+   _3b:
+      mov DX, SafeDX
+      mov AL, [SI + 1]
+      and DL, AL
+      mov AL, [SI]
+      cmp DL, AL
+      jne _09f
+         cmp byte ptr [SI + 2], 2
+         jne _0bf
+         call ReadOneMoreByte
+         mov SafeDX, DX
+         and DL, 00111000b
+         shr DL, 3
+         sub SI, 10
+         _4b:
+            add SI, 10
+            cmp [SI + 6], DL
+            je _0bf
+         jmp _4b
+      _09f:
+      mov AX, offset ListEnd
+      cmp SI, AX
+      jge _0af
+      add SI, 10
+   jmp _3b
+_0af:
+jmp Exit1
+_0bf:
+   mov AL, [SI + 7]
+   call WriteCommand
+   and DL, 11110000b
+   cmp DL, 01110000b
+   jne _0cf
+   ;; Conditional Jumps
+      mov IsComJump, 1
+      mov AL, DH
+      and AL, 00001111b
+      call WriteCommand
+      mov AX, 30
+      mov IsPosLinkis, 1
+      call WriteJumpPosLinkis
+   jmp Exit1
+   _0cf:
+   mov DL, DH
+   mov AL, [SI + 8]
+   cmp AL, 10000000b
+   jne _10f
+   ;; Command with no reg
+      mov AL, [SI + 9]
+      cmp AL, 0
+      je _0ff
+         cmp AL, 4
+         je _0ef
+            cmp AL, 0fh
+            jg _0df
+            ;; Free Operand
+               mov IsPosLinkis, AL
+               mov AX, 30
+               call WriteFreeOperand
+            jmp _0ff
+            _0df:
+         ;; PosLinkis
+            and AL, 11110000b
+            shr AL, 4
+            mov IsPosLinkis, AL
+            mov AX, 30
+            call WriteJumpPosLinkis
+         jmp _0ff
+         _0ef:
+         mov IsPosLinkis, 2
+         mov AX, 37
+         call WriteFreeOperand
+         mov IsPosLinkis, 2
+         mov AX, 30
+         call WriteFreeOperand
+         mov byte ptr [DI + 36], ':'
+      _0ff:
+   jmp Exit1
+   _10f:
+   mov IsRs, 0
+   mov AL, [SI + 8]	;; @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   cmp AL, 00011000b
+   jne _12f
+   ;; Has seg reg here
+      mov IsRs, 1
+      mov AL, [SI + 2]
+      cmp AL, 1	;; if it has MOD, skip adding segment now
+   je _12f	;; MOD will do it
+      mov AL, [SI + 7]
+      cmp AL, 15
+      jne _11f
+      ;; segmento keitimo komanda
+         mov AX, 24
+         call WriteSegReg
+      jmp Exit1
+      _11f:
+   ;; eiline komanda su segmento registru
+      mov AX, 30
+      call WriteSegReg
+   jmp Exit1
+   _12f:
+   mov AL, [SI + 8]	;; @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   cmp AL, 00100000b
+   jne _15f
+      mov IsRw, 0
+      call CheckRv
+      mov AL, [SI + 3]
+      cmp AL, 1
+      jne _13f
+         and DL, 00000010b
+         cmp DL, 00000000b
+      je _13f
+      ;; Normal
+         mov AX, 30
+         call WriteDirectAddress
+         mov [DI + 38], ' ,'
+         mov DL, DH
+         mov AL, [SI + 8]
+         and DL, AL
+         and DL, 00001111b
+         or DL, IsRw
+         mov AX, 40
+         call WriteReg
+      jmp _14f
+      _13f:
+      ;; Reverse
+         mov AX, 34
+         call WriteDirectAddress
+         mov [DI + 32], ' ,'
+         mov DL, DH
+         mov AL, [SI + 8]
+         and DL, AL
+         and DL, 00001111b
+         or DL, IsRw
+         mov AX, 30
+         call WriteReg
+      _14f:
+   jmp Exit1
+   _15f:
+   mov AL, [SI + 2]
+   cmp AL, 0
+   je _16f
+      jmp HasMod
+   _16f:
+;; no MOD here..............................................
+;; word or byte
+   mov AL, [SI + 4]
+   cmp AL, 2
+   je _18f
+      cmp AL, 3
+      je _19f
+      cmp AL, 1
+      jne _17f
+         and DL, 00000001b
+         cmp DL, 1
+         je _19f
+      jmp _18f
+      _17f:
+      mov DL, DH
+      mov AL, [SI + 8]
+      and DL, AL
+      cmp DL, 00000111b
+      jg _19f
+   _18f:
+      mov DL, DH
+      mov AL, [SI + 8]
+      and DL, AL
+      mov AX, 30
+      call WriteReg
+      mov AL, [SI + 9]
+      cmp AL, 1
+      jne _1af
+   ;; has free operand
+      call ReadOneMoreByte
+      mov [DI + 35], AX
+      mov [DI + 32], ' ,'
+      mov byte ptr[DI + 34], '0'
+      mov byte ptr[DI + 37], 'h'
+   jmp _1af
+   _19f:
+      mov DL, DH
+      mov AL, [SI + 8]
+      and DL, AL
+      or DL, 00001000b
+      mov AX, 30
+      call WriteReg
+      mov AL, [SI + 9]
+      cmp AL, 1
+   jne _1af
+   ;; has two free operands
+      call ReadOneMoreByte
+      mov [DI + 37], AX
+      call ReadOneMoreByte
+      mov [DI + 35], AX
+      mov [DI + 32], ' ,'
+      mov byte ptr[DI + 34], '0'
+      mov byte ptr[DI + 39], 'h'
+   _1af:
+jmp Exit1
+HasMod:
+;; has MOD here............................................
+   cmp byte ptr [SI + 2], 2
+   jne _1bf
+      call CheckMod2
+   jmp Exit1
+   _1bf:
+   call ReadOneMoreByte
+   call CheckMod
+jmp Exit1
+Exit1:
 ret
-ReadOneMoreByte ENDP
+CheckCommandByte endp
 
-
-Check8or16Reg PROC
-		;args: si - command prototype address, DH - ComByte
-push ax
-push dx
-	
-	mov al, [si + 4]
-	cmp al, 1
-	
-	jne skip03
-		and dh, 00000001b
-		cmp dh, 00000001b
-		jne skip03
-			mov IsReg16, 00001000b
-	
-	skip03:
-	
-	cmp al, 3
-	jne skip04
-		mov IsReg16, 00001000b
-	skip04:	
-	
-	cmp al, 4
-	jne skip00
-		mov IsReg16, 00010000b
-	skip00:
-	
-pop dx
-pop ax
+ValueToHex proc ;; DL: 1-byte value to change
+   mov AH, 0
+   mov AL, DL
+   div Hex
+   cmp AL, 9
+   jg _1cf
+      add AL, 48
+   jmp _1df
+   _1cf:
+      add AL, 55
+   _1df:
+   cmp AH, 9
+   jg _1ef
+      add AH, 48
+   jmp _1ff
+   _1ef:
+      add AH, 55
+   jmp _1ff
+_1ff:
 ret
-Check8or16Reg ENDP
+ValueToHex endp
 
-CheckSBit PROC
-		;args: DH - com byte, DL - MOD ... R/M byte, ax - where to write
-push bx
-push dx
-
-mov bx, ax
-
-cmp IsReg16, 0
-jne skip1byteBOP
-	mov IsPoslinkis, 1
-	call WriteFreeOperand	
-	jmp skipBOP2
-skip1byteBOP:
-
-mov dl, [si + 5]
-cmp dl, 2
-je skipCheckPletimas
-	mov dx, safeDX
-	and dh, 00000010b
-	cmp dh, 00000010b
-	je skip2byteBOP
-skipCheckPletimas:
-
-	mov IsPoslinkis, 2
-	call WriteFreeOperand	
-	jmp skipBOP2			
-skip2byteBOP:
-
-	; Pleciama pagal pletimo taisykle
-	call ReadOneMoreByte
-	mov dh, 0
-	cmp dl, 10000000b
-	
-	jb skipNeigiamas2
-		mov dh, 0FFh
-	skipNeigiamas2:
-	
-	call ValueToHex
-	mov [di][bx + 3], ax
-	
-	mov dl, dh
-	call ValueToHex
-	mov [di][bx + 1], ax
-	
-	mov byte ptr [di][bx + 0], '0'
-	mov byte ptr [di][bx + 5], 'h'
-
-skipBOP2:	
-pop dx 
-pop bx
- 
+WriteAddress proc ;; BX: address
+   push BX
+   push DX
+   mov BX, ByteNumber
+   add BX, PosLinkisOrg
+   mov DL, BH
+   call ValueToHex
+   mov [DI + 0], AX
+   mov DL, BL
+   call ValueToHex
+   mov [DI + 2], AX
+   mov byte ptr [DI + 4], ':'
+   pop DX	;; also writes the first byte
+   pop BX
+   call ValueToHex
+   mov [DI + 6], AX
 ret
-CheckSBit ENDP 
- 
- 
-checkMOD PROC    ;------------------------------------------
-              ; args: DH - command byte, DL - mod reg r/m
-push si 
-push bx
-push dx
+WriteAddress endp
 
-mov safeDX, dx
+WriteCommand proc ;; AL: command num
+   push SI
+   push BX
+   mov SI, offset Command
+   cmp IsComJump, 1
+   jne _20f
+      mov SI, offset Jcc
+      mov IsComJump, 0
+   _20f:
+   mov AH, 0
+   mov BX, AX
+   shl BX, 2
+   mov AX, [SI][BX]
+   mov [DI + 24], AX
+   add BX, 2
+   mov AX, [SI][BX]
+   mov [DI + 26], AX
+   pop BX
+   pop SI
+ret
+WriteCommand endp
 
-mov IsReg16, 0
-mov IsPoslinkis, 0
+WriteReg proc ;; DL: reg nr or Shifted MOD REG R/M, AX: position to write
+   push BX
+   push DX
+   push SI
+   mov BL, IsRs
+   cmp BL, 1
+   je _21f
+      mov BH, 0
+      mov BL, DL
+      shl BX, 1
+      mov SI, offset RegName
+      add DI, AX
+      mov BX, [SI][BX]
+      mov [DI], BX ;; iraso i eilute
+      sub DI, AX
+   jmp _22f
+   _21f:
+      mov DX, SafeDX
+      call WriteSegReg
+   _22f:
+   pop SI
+   pop DX
+   pop BX
+ret
+WriteReg endp
 
-call Check8or16Reg
+WriteSegReg proc ;; DL: ComByte, AX: position to write
+   push BX
+   push DX
+   push SI
+   mov BH, 0
+   mov BL, DL
+   and BL, 00011000b
+   shr BX, 2
+   mov SI, offset SegName
+   add DI, AX
+   mov BX, [SI][BX]
+   mov [DI], BX ;; iraso i eilute
+   sub DI, AX
+   mov IsRs, 0
+   pop SI
+   pop DX
+   pop BX
+ret
+WriteSegReg endp
 
-and dl, 11000000b  
-       
-cmp dl, 11000000b
-je MODregister
+WriteRegMemory proc ;; DH: ComByte, DL: MOD REG R/M, AX: position to write => AX: place to write next
+   push BX
+   push DX
+   push SI
+   push DI
+   push AX
+   mov DX, SafeDX
+   mov BX, DX
+   and BL, 11000111b
+   cmp BL, 00000110b ;; Tiesioginis adresas, MOD = 00, r/m = 110
+   je _24f
+      mov BH, 0
+      mov BL, DL
+      and BL, 00000111b
+      shl BX, 3
+      mov SI, offset RegMode
+      add DI, AX
+      mov AX, [SI][BX]
+      mov [DI], AX
+      mov AX, [SI][BX + 2]
+      mov [DI + 2], AX
+      mov AX, [SI][BX + 4]
+      mov [DI + 4], AX
+      mov AX, [SI][BX + 6]
+      mov [DI + 6], AX
+      and DL, 00000111b
+      cmp DL, 4
+      pop AX
+      jge _23f
+      ;; less than 5
+         add AX, 7
+      jmp _25f
+      _23f:
+         add AX, 4
+      jmp _25f
+   _24f:
+   pop AX
+   call WriteDirectAddress
+   add AX, 8
+_25f:
+   pop DI
+   pop SI
+   pop DX
+   pop BX
+ret
+WriteRegMemory endp
 
-cmp dl, 00000000b
-jne skip05
-	jmp MODatmintis
-skip05:
+WritePosLinkis proc
+   push BX
+   push CX
+   push DX
+   mov BX, AX
+   mov CH, 0
+   mov CL, IsPosLinkis
+   cmp CL, 0
+   je Exit3
+;; Yra poslinkis
+   mov [DI][BX], '+ '
+   mov [DI][BX + 2], '0 '
+   add BX, 4
+   cmp CL, 1
+   jne _26f
+   ;; Vieno baito poslinkis
+      call ReadOneMoreByte
+      mov [DI + BX], AX
+      mov byte ptr [DI][BX + 2], 'h'
+      mov AX, BX
+      add AX, 3
+   jmp Exit3
+   _26f:
+;; Dvieju baitu poslinkis
+   call ReadOneMoreByte
+   mov [DI][BX + 2], AX
+   call ReadOneMoreByte
+   mov [DI][BX], AX
+   mov byte ptr [DI][BX + 4], 'h'
+   mov AX, BX
+   add AX, 5
+jmp Exit3
+Exit3:
+   pop DX
+   pop CX
+   pop BX
+   mov IsPosLinkis, 0
+ret
+WritePosLinkis endp
 
-shr dl, 6
+WriteDirectAddress proc ;; AX: place where to write
+   push BX
+   push CX
+   push DX
+   mov BX, AX
+   mov [DI][BX], '0['
+   mov [DI][BX + 6], ']h'
+   call ReadOneMoreByte
+   mov [DI][BX + 4], AX
+   call ReadOneMoreByte
+   mov [DI][BX + 2], AX
+   mov AX, BX
+   pop DX
+   pop CX
+   pop BX
+ret
+WriteDirectAddress endp
 
-mov IsPoslinkis, dl
+WriteFreeOperand proc ;; IsPosLinkis: num of bytes, AX: place to write => AX: symbols written
+   push BX
+   push CX
+   push DX
+   mov BX, AX
+   mov CH, 0
+   mov CL, IsPosLinkis
+   cmp CL, 0
+   je Exit4
+;; Yra Operandas
+   cmp CL, 1
+   jg _27f
+   ;; Vieno baito Operandas
+      call ReadOneMoreByte
+      mov byte ptr [DI][BX], '0'
+      mov [DI][BX + 1], AX
+      mov byte ptr [DI][BX + 3], 'h'
+      mov AX, 4
+   jmp Exit4
+   _27f:
+;; Dvieju baitu Operandas
+   mov byte ptr [DI][BX], '0'
+   call ReadOneMoreByte
+   mov [DI][BX + 3], AX
+   call ReadOneMoreByte
+   mov [DI][BX + 1], AX
+   mov byte ptr [DI][BX + 5], 'h'
+   mov AX, 6
+jmp Exit4
+Exit4:
+   pop DX
+   pop CX
+   pop BX
+   mov IsPosLinkis, 0
+ret
+WriteFreeOperand endp
 
-jmp MODatmintis
-	
-MODregister:
-              ; args: DH - command byte, DL - mod reg r/m
-			  ; si - offset LIST_?? 
-	mov al, [si + 3]
-	cmp al, 1
-	jne directionNORMAL
-	
-	and dh, 00000010b
-	cmp dh, 00000010b
-	mov dx, safeDX
-	je directionNORMAL
-	
-	directionREVERSE:
-		; r/m <- reg // d = 0
+WriteJumpPosLinkis proc ;; AX: place to write, IsPosLinkis: bytes poslinkio
+   push BX
+   push CX
+   push DX
+   mov BX, AX
+   cmp IsPosLinkis, 0
+   je _2af
+   cmp IsPosLinkis, 1
+   jne _29f
+   ;; Vieno baito Jump poslinkis
+      call ReadOneMoreByte
+      mov CX, ByteNumber
+      inc CX
+      add CX, PosLinkisOrg
+      mov DH, 0
+      cmp DL, 080h
+      jb _28f
+         mov DH, 0ffh
+      _28f:
+      add CX, DX
+   jmp _2af
+   _29f:
+   ;; Dvieju baitu Jump poslinkis
+      call ReadOneMoreByte
+      mov DH, DL
+      call ReadOneMoreByte
+      xchg DL, DH
+      mov CX, ByteNumber
+      inc CX
+      add CX, PosLinkisOrg
+      add CX, DX
+   _2af:
+   mov byte ptr [DI][BX + 4], 'h'
+   mov DL, CH
+   call ValueToHex
+   mov [DI][BX + 0], AX
+   mov DL, CL
+   call ValueToHex
+   mov [DI][BX + 2], AX
+   mov IsPosLinkis, 0
+   pop DX
+   pop CX
+   pop BX
+ret
+WriteJumpPosLinkis endp
 
-		and dl, 00111000b
-		shr dl, 3
-		or dl, IsReg16
-		mov ax, 34
-		call WriteReg
-		
-		mov dx, safeDX
-		
-		and dl, 00000111b
-		or dl, IsReg16
-		mov ax, 30
-		call WriteReg
-		
-		mov [di + 32], ' ,'
-		jmp MODend
-	
-	directionNORMAL:
-		; reg <- r/m // d = 1 or no at all
+ReadOneMoreByte proc ;; BX: last command num, Nr: where to put byte in line => AX: byte in hex, DL: byte
+   push SI
+   push BX
+   mov BX, ByteNumber
+   inc BX
+   mov SI, offset Duom1
+   mov DL, [SI][BX]
+   mov ByteNumber, BX
+   mov BX, Nr
+   call ValueToHex
+   mov [DI][BX], AX
+   add BX, 3
+   mov Nr, BX
+   pop BX
+   pop SI
+ret
+ReadOneMoreByte endp
 
-		and dl, 00111000b
-		shr dl, 3
-		or dl, IsReg16
-		mov ax, 30
-		call WriteReg
-		
-		mov dx, safeDX
-		
-		mov dx, safeDX
-		and dl, 00000111b
-		or dl, IsReg16
-		mov ax, 34
-		
-		call WriteReg
-		mov [di + 32], ' ,'
-jmp MODend
-	
-	
-MODatmintis:
-	mov al, [si + 3]
-	cmp al, 1
-	jne directionNORMAL2
-	
-	and dh, 00000010b
-	cmp dh, 00000010b
-	mov dx, safeDX
-	je directionNORMAL2
-	
-	directionREVERSE2:
-		; r/m <- reg // d = 0
+CheckRv proc ;; SI: command prototype address, DH: ComByte
+   push AX
+   push DX
+   mov AL, [SI + 4]
+   cmp AL, 1
+   jne _2bf
+      and DH, 00000001b
+      cmp DH, 00000001b
+   jne _2bf
+      mov IsRw, 00001000b
+   _2bf:
+   cmp AL, 3
+   jne _2cf
+      mov IsRw, 00001000b
+   _2cf:
+   cmp AL, 4
+   jne _2df
+      mov IsRw, 00010000b
+   _2df:
+   pop DX
+   pop AX
+ret
+CheckRv endp
 
-		mov ax, 30
-		call WriteRegMemory
-		call WritePoslinkis
+CheckSBit proc ;; DH: com byte, DL: MOD ... R/M byte, AX: where to write
+   push BX
+   push DX
+   mov BX, AX
+   cmp IsRw, 0
+   jne _2ef
+      mov IsPosLinkis, 1
+      call WriteFreeOperand
+   jmp Exit5
+   _2ef:
+   mov DL, [SI + 5]
+   cmp DL, 2
+   je _2ff
+      mov DX, SafeDX
+      and DH, 00000010b
+      cmp DH, 00000010b
+      je _30f
+   _2ff:
+      mov IsPosLinkis, 2
+      call WriteFreeOperand
+   jmp Exit5
+   _30f:
+;; Pleciama pagal pletimo taisykle
+   call ReadOneMoreByte
+   mov DH, 0
+   cmp DL, 10000000b
+   jb _31f
+      mov DH, 0ffh
+   _31f:
+   call ValueToHex
+   mov [DI][BX + 3], AX
+   mov DL, DH
+   call ValueToHex
+   mov [DI][BX + 1], AX
+   mov byte ptr [DI][BX + 0], '0'
+   mov byte ptr [DI][BX + 5], 'h'
+Exit5:
+   pop DX
+   pop BX
+ret
+CheckSBit endp
 
-		add di, ax
-		mov [di], ' ,'
-		sub di, ax
-		
-		mov dx, safeDX
-		
-		and dl, 00111000b
-		shr dl, 3
-		or dl, IsReg16
-		add ax, 2
-		call WriteReg
-		
-		jmp MODend
-	
-	directionNORMAL2:
-		; reg <- r/m // d = 1 or no at all
-                
-		mov ax, 34
-		call WriteRegMemory
-		call WritePoslinkis
-		
-		mov dx, safeDX
-		
-		and dl, 00111000b
-		shr dl, 3
-		or dl, IsReg16
-		mov ax, 30
-		call WriteReg
-		
-		mov [di + 32], ' ,'
-jmp MODend
-       
-MODend:
+CheckMod proc ;; DH: command byte, DL: mod reg r/m
+   push SI
+   push BX
+   push DX
+   mov SafeDX, DX
+   mov IsRw, 0
+   mov IsPosLinkis, 0
+   call CheckRv
+   and DL, 11000000b
+   cmp DL, 11000000b
+   je _33f
+      cmp DL, 00000000b
+      jne _32f
+      jmp _35f
+      _32f:
+         shr DL, 6
+         mov IsPosLinkis, DL
+      jmp _35f
+   _33f:
+;; args: DH: command byte, DL: mod reg r/m, SI: offset List??
+   mov AL, [SI + 3]
+   cmp AL, 1
+   jne _34f
+      and DH, 00000010b
+      cmp DH, 00000010b
+      mov DX, SafeDX
+   je _34f
+   ;; Direction Reverse 1
+   ;; r/m <- reg // d = 0
+      and DL, 00111000b
+      shr DL, 3
+      or DL, IsRw
+      mov AX, 34
+      call WriteReg
+      mov DX, SafeDX
+      and DL, 00000111b
+      or DL, IsRw
+      mov AX, 30
+      call WriteReg
+      mov [DI + 32], ' ,'
+   jmp Exit6
+   _34f:
+;; reg <- r/m // d = 1 or no at all
+   and DL, 00111000b
+   shr DL, 3
+   or DL, IsRw
+   mov AX, 30
+   call WriteReg
+   mov DX, SafeDX
+   mov DX, SafeDX
+   and DL, 00000111b
+   or DL, IsRw
+   mov AX, 34
+   call WriteReg
+   mov [DI + 32], ' ,'
+jmp Exit6
+_35f:
+   mov AL, [SI + 3]
+   cmp AL, 1
+   jne _36f
+      and DH, 00000010b
+      cmp DH, 00000010b
+      mov DX, SafeDX
+   je _36f
+   ;; Direction Reverse 2
+   ;; r/m <- reg // d = 0
+      mov AX, 30
+      call WriteRegMemory
+      call WritePosLinkis
+      add DI, AX
+      mov [DI], ' ,'
+      sub DI, AX
+      mov DX, SafeDX
+      and DL, 00111000b
+      shr DL, 3
+      or DL, IsRw
+      add AX, 2
+      call WriteReg
+   jmp Exit6
+   _36f:
+;; reg <- r/m // d = 1 or no at all
+   mov AX, 34
+   call WriteRegMemory
+   call WritePosLinkis
+   mov DX, SafeDX
+   and DL, 00111000b
+   shr DL, 3
+   or DL, IsRw
+   mov AX, 30
+   call WriteReg
+   mov [DI + 32], ' ,'
+jmp Exit6
+Exit6:
+   pop DX
+   pop BX
+   pop SI
+ret
+CheckMod endp
 
-pop dx
-pop bx
-pop si  
-                  
-     
-ret    
-checkMOD ENDP   ;-------------------------------------------  
- 
-
-checkMOD2 PROC    ;------------------------------------------
-         ; args: safeDX: DH - command byte, DL - mod reg r/m
-push si 
-push bx
-push dx
-
-mov dx, safeDX
-
-mov IsReg16, 0
-mov IsPoslinkis, 0
-
-call Check8or16Reg
-
-and dl, 11000000b  
-       
-cmp dl, 11000000b
-je MOD2register
-
-cmp dl, 00000000b
-jne skip06
-	jmp MOD2atmintis
-skip06:
-
-shr dl, 6
-mov IsPoslinkis, dl
-
-jmp MOD2atmintis
-	
-MOD2register:
-              ; args: DH - command byte, DL - mod reg r/m
-			  ; si - offset LIST_?? 
-	
-		; r/m(reg) <- (bop) // d = 0	
-		mov dx, safeDX
-
-		and dl, 00000111b
-		or dl, IsReg16
-		mov ax, 30
-		call WriteReg
-		
-		mov al, [si + 5]
-		cmp al, 0
-		je skipBOP
-			mov [di + 32], ' ,'
-			mov dx, safeDX
-			
-			mov ax, 34
-			call CheckSBit
-		skipBOP:
-		jmp MOD2end
-	
-MOD2atmintis:
-		; r/m <- (bop) // d = 0
-		mov ax, 30
-		
-		cmp IsReg16, 0
-		jne skipByte
-			mov [di + 30], '.b'
-			add ax, 2
-		skipByte:
-		
-		cmp IsReg16, 00001000b
-		jne skipWord
-			mov [di + 30], '.w'
-			add ax, 2
-		skipWord:		
-		
-		cmp IsReg16, 00010000b
-		jne skipDoubleWord
-			mov [di + 30], 'wd'
-			mov byte ptr [di + 32], '.'
-			add ax, 3
-		skipDoubleWord:	
-
-		call WriteRegMemory
-		call WritePoslinkis
-
-		cmp byte ptr [si + 5], 0
-		je skipBOP0
-			add di, ax
-			mov [di], ' ,'
-			sub di, ax
-			
-			mov dx, safeDX
-			add ax, 2
-			
-			call CheckSBit
-		skipBOP0:
-MOD2end:
-
-pop dx
-pop bx
-pop si  
-                   
-ret    
-checkMOD2 ENDP   ;-------------------------------------------   
+CheckMod2 proc ;; SafeDX: DH: command byte, DL: mod reg r/m
+   push SI
+   push BX
+   push DX
+   mov DX, SafeDX
+   mov IsRw, 0
+   mov IsPosLinkis, 0
+   call CheckRv
+   and DL, 11000000b
+   cmp DL, 11000000b
+   je _38f
+      cmp DL, 00000000b
+      jne _37f
+      jmp _3af
+   _37f:
+      shr DL, 6
+      mov IsPosLinkis, DL
+   jmp _3af
+   _38f:
+   ;; args: DH: command byte, DL: mod reg r/m, SI: offset List??
+   ;; r/m(reg) <- (bop) // d = 0
+      mov DX, SafeDX
+      and DL, 00000111b
+      or DL, IsRw
+      mov AX, 30
+      call WriteReg
+      mov AL, [SI + 5]
+      cmp AL, 0
+      je _39f
+         mov [DI + 32], ' ,'
+         mov DX, SafeDX
+         mov AX, 34
+         call CheckSBit
+      _39f:
+   jmp Exit7
+   _3af:
+;; r/m <- (bop) // d = 0
+   mov AX, 30
+   cmp IsRw, 0
+   jne _3bf
+      mov [DI + 30], '.b'
+      add AX, 2
+   _3bf:
+   cmp IsRw, 00001000b
+   jne _3cf
+      mov [DI + 30], '.w'
+      add AX, 2
+   _3cf:
+   cmp IsRw, 00010000b
+   jne _3df
+      mov [DI + 30], 'wd'
+      mov byte ptr [DI + 32], '.'
+      add AX, 3
+   _3df:
+   call WriteRegMemory
+   call WritePosLinkis
+   cmp byte ptr [SI + 5], 0
+   je _3ef
+      add DI, AX
+      mov [DI], ' ,'
+      sub DI, AX
+      mov DX, SafeDX
+      add AX, 2
+      call CheckSBit
+   _3ef:
+Exit7:
+   pop DX
+   pop BX
+   pop SI
+ret
+CheckMod2 endp
 
 end

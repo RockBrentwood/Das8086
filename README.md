@@ -3,7 +3,7 @@
 
 Disassembler for 16-Bit 8086 Intel CPU byte code while it itself was written in 16-Bit MASM/TASM assembler language. Does not recognize all opcodes, supports MOV PUSH POP ADD INC SUB DEC CMP MUL DIV CALL RET JMP LOOP INT and most of Jumps.
 
-![Left: Disassembled code --- Right: Original Code](https://github.com/JustoSenka/8086-16-Bit-Disassembler/blob/master/pics/disasm2.png?raw=true)
+![Left: Disassembled code --- Right: Original Code](https://github.com/RockBrentwood/Das8086/blob/master/Images/DisAsm2.png?raw=true)
 
 ## How to run
 

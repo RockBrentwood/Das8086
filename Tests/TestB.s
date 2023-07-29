@@ -2,8 +2,7 @@
 0101: 8B EC             MOV   BP, SP                        
 0103: 06                PUSH  ES                            
 0104: 8B 4E 06          MOV   CX, [BP] + 006h               
-0107: E3                                                    
-0108: 11                                                    
+0107: E3 11             JCXZ  011Ah                         
 0109: 8B 76 04          MOV   SI, [BP] + 004h               
 010C: 8B 7E 02          MOV   DI, [BP] + 002h               
 010F: 1E                PUSH  DS                            

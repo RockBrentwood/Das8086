@@ -1,21 +1,23 @@
-# 8086 16-Bit Disassembler
-
+8086 16-Bit Disassembler
+━━━━━━━━━━━━━━━━━━━━━━━━
 Derived from a disassembler for the 16-bit member, 8086, of the x86 family,
 originally written by Justo Senka in x86 assembly suitable for processing by MASM or TASM,
 it is being prepared for translation to C.
 
 It only handles the limited subset of the 8086 comprising the opcodes:
 
-    MOV PUSH POP ADD INC SUB DEC CMP MUL DIV CALL RET JMP LOOP INT, and most of Jumps
+    MOV XCHG TEST
+    INC DEC PUSH POP
+    ADD OR  ADC SBB AND SUB XOR CMP
+    NEG NOT MUL IMUL DIV IDIV
+    CALL JMP INT RET RETF IRET
+    LOOP JCXZ Conditional jumps: JO JNO JB JNB JE JNE JNA JA JS JNS JP JNP JL JGE JLE JG
 
 and is being staged for upward expansion to include the other opcodes.
 
-![Left: Disassembled code --- Right: Original Code](https://github.com/RockBrentwood/Das8086/blob/master/Images/DisAsm2.png?raw=true)
-
-## How to run
-
-**DOS platform required, for now**
-
+How to run
+──────────
+A DOS platform required, for now.
 It can be run on a 16-bit OS, such as DOS,
 or on any host that has installed a DOS emulator (such as DOSBox) or other 8086 Emulator, such as Emu8086.
 
@@ -28,9 +30,9 @@ The program executes from the command line and expects 2 arguments:
 - ExFile: the disassembly output.
 Example: `DisAsm86 Test.bin Test.s`
 
-## How to compile
-
-Can be easily compiled with:
+How to compile
+──────────────
+It can be compiled with:
 - Emu8086: Open source file and press run.
   Runs on contemporary hosts.
 - DOS: Using Tasm 1.4.
@@ -41,19 +43,21 @@ Can be easily compiled with:
   and
      `Tasm\tlink DisAsm86.obj` will link the object file to create the executable.
 
-## Source Code
+Source Code
+───────────
+Originally written, as a partial implementation of the 8086 instruction set,
+by the original author in late 2014, as a learning process, it was released under MIT license,
+there are still limitations and bugs present.
 
-Uploading just now, but originally it was written in late 2014.
-Source Code is released under MIT license.
-It can be used freely however you want, although, there are some bugs and it doesn't support all instructions as it was written as part of learning process.
-Storing source code here to preserve it for future generations as it could be used for a learning material to something the world has already passed and forgotten.. 8086
-
-## Upward Revision
-
-A root canal is being done on the source to open up its structure
+Upward Revision
+───────────────
+Originally released for the benefit of future generations, to help better acquaint them with the legacy 8086,
+a root canal is being done on the source to open up its structure
 so that it can be scaled up to handle later versions of the x86 family.
 
 Its main talking point is that it is making direct use of the compile binary opcode maps
 that were originally presented in Intel's 80x86 family references.
 
-It may also be downgraded to handle the 8080/8085, which is the immediate forebear of the 8086, as well as the Z80.
+It may also be downgraded to handle the 8080/8085, which is the immediate forebear of the 8086, as well as the Z80,
+and may also be included in or attached to the CPU archive,
+which is being maintained in a separate repository and may, itself, undergo some restructuring.

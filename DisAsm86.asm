@@ -47,49 +47,118 @@ SegName db "ESCSSSDS"
 ;;             0       1       2       3       4       5       6       7
 RegMode db "[BX+SI] [BX+DI] [BP+SI] [BP+DI] [SI]    [DI]    [BP]    [BX]    "
 
-;;         0          1          2  3  4  5   6     7  8          9
-;;         OpBytes    OpMask    MOD d  w  s  XCM  Mnem Reg      p/bop
-ListTab	db 00000000b, 11111100b, 1, 1, 1, 0, 000b, 03, 00000000b, 00	;; 00 000 0xx: add
-	db 00000100b, 11111110b, 0, 0, 1, 0, 000b, 03, 00000000b, 01	;; 00 000 10x: add
-	db 00101000b, 11111100b, 1, 1, 1, 0, 000b, 05, 00000000b, 00	;; 00 101 0xx: sub
-	db 00101100b, 11111110b, 0, 0, 1, 0, 000b, 05, 00000000b, 01	;; 00 101 10x: sub
-	db 00111000b, 11111100b, 1, 1, 1, 0, 000b, 07, 00000000b, 00	;; 00 111 0xx: cmp
-	db 00111100b, 11111110b, 0, 0, 1, 0, 000b, 07, 00000000b, 01	;; 00 111 10x: cmp
-	db 01000000b, 11111000b, 0, 0, 3, 0, 000b, 04, 00000111b, 00	;; 01 000 xxx: inc
-	db 01001000b, 11111000b, 0, 0, 3, 0, 000b, 06, 00000111b, 00	;; 01 001 xxx: dec
-	db 01010000b, 11111000b, 0, 0, 3, 0, 000b, 01, 00000111b, 00	;; 01 010 xxx: push
-	db 01011000b, 11111000b, 0, 0, 3, 0, 000b, 02, 00000111b, 00	;; 01 011 xxx: pop
-	db 00000110b, 11100111b, 0, 0, 0, 0, 000b, 01, 00011000b, 00	;; 00 0xx 110: push
-	db 00000111b, 11100111b, 0, 0, 0, 0, 000b, 02, 00011000b, 00	;; 00 0xx 111: pop
-	db 00100110b, 11100111b, 0, 0, 0, 0, 000b, 15, 00011000b, 00	;; 00 1xx 110: Seg:
-	db 10001000b, 11111100b, 1, 1, 1, 0, 000b, 00, 00000000b, 00	;; 10 001 0xx: mov
-	db 10001100b, 11111101b, 1, 1, 3, 0, 000b, 00, 00011000b, 00	;; 10 001 1x0: mov
-	db 10110000b, 11110000b, 0, 0, 0, 0, 000b, 00, 00001111b, 01	;; 10 11x xxx: mov
-	db 10100000b, 11111100b, 0, 1, 1, 0, 000b, 00, 00100000b, 00	;; 10 100 0xx: mov
-	db 11001101b, 11111111b, 0, 0, 0, 0, 000b, 14, 10000000b, 01	;; 11 001 101: int
-	db 11000011b, 11111111b, 0, 0, 0, 0, 000b, 11, 10000000b, 00	;; 11 000 011: ret
-	db 11000010b, 11111111b, 0, 0, 0, 0, 000b, 11, 10000000b, 02	;; 11 000 010: ret
-	db 10011010b, 11111111b, 0, 0, 0, 0, 000b, 10, 10000000b, 04	;; 10 011 010: call
-	db 11101010b, 11111111b, 0, 0, 0, 0, 000b, 12, 10000000b, 04	;; 11 101 010: jmp
-	db 01110000b, 11110000b, 0, 0, 0, 0, 000b, 16, 10000000b, 00	;; 0111 xxxx: jCC ;; Conditional Jumps.
-	db 11101000b, 11111111b, 0, 0, 0, 0, 000b, 10, 10000000b, 20h	;; 11 101 000: call
-	db 11101001b, 11111111b, 0, 0, 0, 0, 000b, 12, 10000000b, 20h	;; 11 101 001: jmp
-	db 11101011b, 11111111b, 0, 0, 0, 0, 000b, 12, 10000000b, 10h	;; 11 101 011: jmp
-	db 11100010b, 11111111b, 0, 0, 0, 0, 000b, 13, 10000000b, 10h	;; 11 100 010: loop
-	db 11111110b, 11111110b, 2, 0, 1, 0, 000b, 04, 00000000b, 00	;; 11 111 110: inc
-	db 11111110b, 11111110b, 2, 0, 1, 0, 001b, 06, 00000000b, 00	;; 11 111 110: dec
-	db 11111111b, 11111111b, 2, 0, 3, 0, 010b, 10, 00000000b, 00	;; 11 111 111: call
-	db 11111111b, 11111111b, 2, 0, 4, 0, 011b, 10, 00000000b, 00	;; 11 111 111: call
-	db 11111111b, 11111111b, 2, 0, 2, 0, 100b, 12, 00000000b, 00	;; 11 111 111: jmp
-	db 11111111b, 11111111b, 2, 0, 3, 0, 101b, 12, 00000000b, 00	;; 11 111 111: jmp
-	db 11111111b, 11111111b, 2, 0, 3, 0, 110b, 01, 00000000b, 00	;; 11 111 111: push
-	db 11110110b, 11111110b, 2, 0, 1, 0, 100b, 08, 00000000b, 00	;; 11 110 11x: mul
-	db 11110110b, 11111110b, 2, 0, 1, 0, 110b, 09, 00000000b, 00	;; 11 110 11x: div
-	db 10001111b, 11111111b, 2, 0, 3, 0, 000b, 02, 00000000b, 00	;; 10 001 111: pop
-	db 10000000b, 11111100b, 2, 0, 1, 1, 000b, 03, 00000000b, 00	;; 10 000 0xx: add
-	db 10000000b, 11111100b, 2, 0, 1, 1, 101b, 05, 00000000b, 00	;; 10 000 0xx: sub
-	db 10000000b, 11111100b, 2, 0, 1, 1, 111b, 07, 00000000b, 00	;; 10 000 0xx: cmp
-ListEnd	db 11000110b, 11111110b, 2, 0, 1, 2, 000b, 00, 00000000b, 00	;; 11 000 11x: mov
+;;         0          1          2  3  4  5   6  7   8          9
+;;         OpBytes    OpMask    xrm d  w  s  XCM Op  Reg      p/bop
+;;	All of the 00 aaa 0dw xrm should be combined: AOp (add,or,adc,sbb,and,sub,xor,cmp), (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
+;;	All of the 00 aaa 10w should be combined: AOp (add,or,adc,sbb,and,sub,xor,cmp), (AL,Ib; AX,Iw)
+ListTab	db 00000000b, 11111100b, 1, 1, 1, 0, 0q, 03, 00000000b, 00	;; 00 000 0dw xrm: add (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
+	db 00000100b, 11111110b, 0, 0, 1, 0, 0q, 03, 00000000b, 01	;; 00 000 10w: add (AL,Ib; AX,Iw)
+;;	db 00001000b, 11111100b, 1, 1, 1, 0, 0q, __, 00000000b, 00	;; 00 001 0dw xrm: or (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
+;;	db 00001100b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 01	;; 00 001 10w: or (AL,Ib; AX,Iw)
+;;	db 00010000b, 11111100b, 1, 1, 1, 0, 0q, __, 00000000b, 00	;; 00 010 0dw xrm: adc (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
+;;	db 00010100b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 01	;; 00 010 10w: adc (AL,Ib; AX,Iw)
+;;	db 00011000b, 11111100b, 1, 1, 1, 0, 0q, __, 00000000b, 00	;; 00 011 0dw xrm: sbb (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
+;;	db 00011100b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 01	;; 00 011 10w: sbb (AL,Ib; AX,Iw)
+;;	db 00100000b, 11111100b, 1, 1, 1, 0, 0q, __, 00000000b, 00	;; 00 100 0dw xrm: and (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
+;;	db 00100100b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 01	;; 00 100 10w: and (AL,Ib; AX,Iw)
+	db 00101000b, 11111100b, 1, 1, 1, 0, 0q, 05, 00000000b, 00	;; 00 101 0dw xrm: sub (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
+	db 00101100b, 11111110b, 0, 0, 1, 0, 0q, 05, 00000000b, 01	;; 00 101 10w: sub (AL,Ib; AX,Iw)
+;;	db 00110000b, 11111100b, 1, 1, 1, 0, 0q, __, 00000000b, 00	;; 00 110 0dw xrm: xor (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
+;;	db 00110100b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 01	;; 00 110 10w: xor (AL,Ib; AX,Iw)
+	db 00111000b, 11111100b, 1, 1, 1, 0, 0q, 07, 00000000b, 00	;; 00 111 0dw xrm: cmp (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
+	db 00111100b, 11111110b, 0, 0, 1, 0, 0q, 07, 00000000b, 01	;; 00 111 10w: cmp (AL,Ib; AX,Iw)
+	db 01000000b, 11111000b, 0, 0, 3, 0, 0q, 04, 00000111b, 00	;; 01 000 rrr: inc Rw (AX,CX,DX,BX,SP,BP,SI,DI)
+	db 01001000b, 11111000b, 0, 0, 3, 0, 0q, 06, 00000111b, 00	;; 01 001 rrr: dec Rw (AX,CX,DX,BX,SP,BP,SI,DI)
+	db 01010000b, 11111000b, 0, 0, 3, 0, 0q, 01, 00000111b, 00	;; 01 010 rrr: push Rw (AX,CX,DX,BX,SP,BP,SI,DI)
+	db 01011000b, 11111000b, 0, 0, 3, 0, 0q, 02, 00000111b, 00	;; 01 011 rrr: pop Rw (AX,CX,DX,BX,SP,BP,SI,DI)
+	db 00000110b, 11100111b, 0, 0, 0, 0, 0q, 01, 00011000b, 00	;; 00 0ss 110: push Rs (ES,CS,SS,DS)
+	db 00000111b, 11100111b, 0, 0, 0, 0, 0q, 02, 00011000b, 00	;; 00 0ss 111: pop Rs (ES,CS,SS,DS) CS is excluded on 80186+
+	db 00100110b, 11100111b, 0, 0, 0, 0, 0q, 15, 00011000b, 00	;; 00 1ss 110: Seg: (ES,CS,SS,DS)
+;;	db 00100111b, 11100111b, 0, 0, 0, 0, 0q, __, 00011000b, 00	;; 00 1bb 111: BOp (daa,das,aaa,aas)
+	db 01110000b, 11110000b, 0, 0, 0, 0, 0q, 16, 10000000b, 00	;; 0111 cccc: jCC Jb (o,no,b,nb,e,ne,na,a,s,ns,p,np,l,ge,le,g)
+;; All of the 10 000 0sb /aaa should be combined using AOp like this:
+;;	db 10000000b, 11111100b, 2, 0, 1, 1, 0q, __, 00000000b, 00	;; 10 000 0sw xAm: AOp (Eb,Ib; Ew,Iw; Eb,Is; Ew,Is)
+	db 10000000b, 11111100b, 2, 0, 1, 1, 0q, 03, 00000000b, 00	;; 10 000 0sw x0m: add (Eb,Ib; Ew,Iw; Eb,Is; Ew,Is)
+;;	db 10000000b, 11111100b, 2, 0, 1, 1, 1q, __, 00000000b, 00	;; 10 000 0sw x1m: or (Eb,Ib; Ew,Iw; Eb,Is; Ew,Is)
+;;	db 10000000b, 11111100b, 2, 0, 1, 1, 2q, __, 00000000b, 00	;; 10 000 0sw x2m: adc (Eb,Ib; Ew,Iw; Eb,Is; Ew,Is)
+;;	db 10000000b, 11111100b, 2, 0, 1, 1, 3q, __, 00000000b, 00	;; 10 000 0sw x3m: sbb (Eb,Ib; Ew,Iw; Eb,Is; Ew,Is)
+;;	db 10000000b, 11111100b, 2, 0, 1, 1, 4q, __, 00000000b, 00	;; 10 000 0sw x4m: and (Eb,Ib; Ew,Iw; Eb,Is; Ew,Is)
+	db 10000000b, 11111100b, 2, 0, 1, 1, 5q, 05, 00000000b, 00	;; 10 000 0sw x5m: sub (Eb,Ib; Ew,Iw; Eb,Is; Ew,Is)
+;;	db 10000000b, 11111100b, 2, 0, 1, 1, 6q, __, 00000000b, 00	;; 10 000 0sw x6: xor (Eb,Ib; Ew,Iw; Eb,Is; Ew,Is)
+	db 10000000b, 11111100b, 2, 0, 1, 1, 7q, 07, 00000000b, 00	;; 10 000 0sw x7m: cmp (Eb,Ib; Ew,Iw; Eb,Is; Ew,Is)
+;;	db 10000100b, 11111110b, 2, 0, 1, 0, 0q, __, 00000000b, 00	;; 10 000 10w: test (Eb,Ib; Ew,Iw)
+;;	db 10000110b, 11111110b, 2, 0, 1, 0, 0q, __, 00000000b, 00	;; 10 000 11w: xchg (Eb,Ib; Ew,Iw)
+	db 10001000b, 11111100b, 1, 1, 1, 0, 0q, 00, 00000000b, 00	;; 10 001 0dw xrm: mov (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
+;;	db 10001101b, 11111111b, 1, 0, 3, 0, 0q, __, 00000000b, 00	;; 10 001 101 xrm: lea Ew (r != 3)
+	db 10001100b, 11111101b, 1, 1, 3, 0, 0q, 00, 00011000b, 00	;; 10 001 100 xrm: mov (Ew,Rs; Rs,Ew)
+	db 10001111b, 11111111b, 2, 0, 3, 0, 0q, 02, 00000000b, 00	;; 10 001 111 x0m: pop Ew
+;;	db 10010000b, 11111000b, 0, 0, 0, 0, 0q, __, 00000111b, 00	;; 10 010 rrr: xchg AX, Rw (note: xchg AX, AX = nop)
+;;	db 10011000b, 11111110b, 0, 0, 1, 0, 0q, 00, 00000000b, 00	;; 10 011 00w: COp (cbw,cwd)
+	db 10011010b, 11111111b, 0, 0, 0, 0, 0q, 10, 10000000b, 04	;; 10 011 010: call Af
+;;	db 10011011b, 11111111b, 0, 0, 0, 0, 0q, __, 00000000b, 00	;; 10 011 011: wait
+;;	db 10011100b, 11111100b, 0, 0, 0, 0, 0q, __, 00000000b, 00	;; 10 011 1ff: FOp (pushf, popf, sahf, lahf)
+	db 10100000b, 11111100b, 0, 1, 1, 0, 0q, 00, 00100000b, 00	;; 10 100 0dw: mov (AL,Mb; AX,Mw; Mb,AL; Mw,AL)
+;;	db 10100100b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 00	;; 10 100 10w: (movsb,movsw)
+;;	db 10100110b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 00	;; 10 100 11w: (cmpsb,cmpsw)
+;;	db 10101000b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 01	;; 10 101 00w: test (AL,Ib; AX,Iw)
+;;	db 10101010b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 00	;; 10 101 01w: (stosb,stosw)
+;;	db 10101100b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 00	;; 10 101 10w: (lodsb,lodsw)
+;;	db 10101110b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 00	;; 10 101 11w: (scasb,scasw)
+	db 10110000b, 11110000b, 0, 0, 0, 0, 0q, 00, 00001111b, 01	;; 10 11w rrr: mov (Rb,Ib; Rw,Iw)
+	db 11000010b, 11111111b, 0, 0, 0, 0, 0q, 11, 10000000b, 02	;; 11 000 010: ret Iw
+	db 11000011b, 11111111b, 0, 0, 0, 0, 0q, 11, 10000000b, 00	;; 11 000 011: ret
+;;	db 11000100b, 11111111b, 1, 0, 3, 0, 0q, __, 00000000b, 00	;; 11 000 100 xrm: les Rw,Ew
+;;	db 11000101b, 11111111b, 1, 0, 3, 0, 0q, __, 00000000b, 00	;; 11 000 101 xrm: lds Rw,Ew
+	db 11000110b, 11111110b, 2, 0, 1, 2, 0q, 00, 00000000b, 00	;; 11 000 11w x0m: mov (Eb,Ib; Ew,Iw)
+;;	db 11001010b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 02	;; 11 001 010: retf Iw
+;;	db 11001011b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 001 011: retf
+;;	db 11001100b, 11111111b, 0, 0, 0, 0, 0q, 14, 10000000b, 00	;; 11 001 100: int 3
+	db 11001101b, 11111111b, 0, 0, 0, 0, 0q, 14, 10000000b, 01	;; 11 001 101: int Ib
+;;	db 11001110b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 001 110: into
+;;	db 11001111b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 001 111: iret
+;;	db 11010000b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 00	;; 11 010 00w: SOp (rol,ror,rcl,rcr,shl,shr,-,sar) (Eb,Ib; Ew,Iw)
+;;	db 11010010b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 00	;; 11 010 01w: SOp (rol,ror,rcl,rcr,shl,shr,-,sar) (Eb,CL; Ew,CL)
+;;	db 11010101b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 010 100: aam
+;;	db 11010101b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 010 101: aad
+;;	db 11010111b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 010 111: xlat
+;;	db 11011000b, 11111000b, 1, 0, 0, 0, 0q, __, 00000111b, 00	;; 11 011 ppp xrm: esc p Eb
+;;	db 11100000b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 10h	;; 11 100 010: loopne Jb
+;;	db 11100001b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 10h	;; 11 100 010: loope Jb
+	db 11100010b, 11111111b, 0, 0, 0, 0, 0q, 13, 10000000b, 10h	;; 11 100 010: loop Jb
+;;	db 11100011b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 10h	;; 11 100 010: jcxz Jb
+;;	db 11100100b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 01	;; 11 100 10w: in (AL,Ib; AX,Ib)
+;;	db 11100110b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 01	;; 11 100 11w: out (Ib,AL; Ib,AX)
+	db 11101000b, 11111111b, 0, 0, 0, 0, 0q, 10, 10000000b, 20h	;; 11 101 000: call An
+	db 11101001b, 11111111b, 0, 0, 0, 0, 0q, 12, 10000000b, 20h	;; 11 101 001: jmp An
+	db 11101010b, 11111111b, 0, 0, 0, 0, 0q, 12, 10000000b, 04	;; 11 101 010: jmp Af
+	db 11101011b, 11111111b, 0, 0, 0, 0, 0q, 12, 10000000b, 10h	;; 11 101 011: jmp Jb
+;;	db 11101100b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 00	;; 11 101 10w: in (AL,DX; AX,DX)
+;;	db 11101110b, 11111110b, 0, 0, 1, 0, 0q, __, 00000000b, 00	;; 11 101 11w: out (DX,AL; DX,AX)
+;;	db 11110000b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 110 000: lock
+;;	db 11110010b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 110 010: repne
+;;	db 11110011b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 110 011: rep
+;;	db 11110100b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 110 100: hlt
+;;	db 11110101b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 110 101: cmc
+;;	db 11110110b, 11111110b, 2, 0, 1, 0, 0q, __, 00000000b, 00	;; 11 110 11w x0m: test (Eb,Ib; Ew,Iw)
+;;	db 11110110b, 11111110b, 2, 0, 1, 0, 2q, __, 00000000b, 00	;; 11 110 11w x2m: neg (Eb; Ew)
+;;	db 11110110b, 11111110b, 2, 0, 1, 0, 3q, __, 00000000b, 00	;; 11 110 11w x3m: not (Eb; Ew)
+	db 11110110b, 11111110b, 2, 0, 1, 0, 4q, 08, 00000000b, 00	;; 11 110 11w x4m: mul (Eb; Ew)
+;;	db 11110110b, 11111110b, 2, 0, 1, 0, 5q, __, 00000000b, 00	;; 11 110 11w x5m: imul (Eb; Ew)
+	db 11110110b, 11111110b, 2, 0, 1, 0, 6q, 09, 00000000b, 00	;; 11 110 11w x6m: div (Eb; Ew)
+;;	db 11110110b, 11111110b, 2, 0, 1, 0, 7q, __, 00000000b, 00	;; 11 110 11w x7m: idiv (Eb; Ew)
+;;	db 11111000b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 111 000: cmc
+;;	db 11111001b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 111 001: stc
+;;	db 11111010b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 111 010: cmi
+;;	db 11111011b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 111 011: sti
+;;	db 11111100b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 111 100: cmd
+;;	db 11111101b, 11111111b, 0, 0, 0, 0, 0q, __, 10000000b, 00	;; 11 111 101: std
+	db 11111110b, 11111110b, 2, 0, 1, 0, 0q, 04, 00000000b, 00	;; 11 111 11w x0m: inc (Eb; Ew)
+	db 11111110b, 11111110b, 2, 0, 1, 0, 1q, 06, 00000000b, 00	;; 11 111 11w x1m: dec (Eb; Ew)
+	db 11111111b, 11111111b, 2, 0, 3, 0, 2q, 10, 00000000b, 00	;; 11 111 111 x2m: call near En
+	db 11111111b, 11111111b, 2, 0, 4, 0, 3q, 10, 00000000b, 00	;; 11 111 111 x3m: call far Ef
+	db 11111111b, 11111111b, 2, 0, 2, 0, 4q, 12, 00000000b, 00	;; 11 111 111 x4m: jmp near En
+	db 11111111b, 11111111b, 2, 0, 3, 0, 5q, 12, 00000000b, 00	;; 11 111 111 x5m: jmp far Ef
+ListEnd	db 11111111b, 11111111b, 2, 0, 3, 0, 6q, 01, 00000000b, 00	;; 11 111 111 x6m: push Ew
 
 .code
    mov AX, @data
@@ -199,7 +268,6 @@ Exit0:
    int 21h
 
 ReadFileName proc ;; ES:BX: Location on the command line to read from, DS:DI: The file name buffer to read to.
-   mov CL, 'F'
    mov DX, 0
    _2b:
       mov AL, ES:BX
@@ -316,19 +384,16 @@ CheckOpCode proc ;; DL: OpCode
          mov SafeDX, DX
          and DL, 00111000b
          shr DL, 3
-         sub SI, 10
          _4b:
-            add SI, 10
             cmp [SI + 6], DL
             je _0bf
+            add SI, 10
          jmp _4b
       _09f:
+      add SI, 10
       mov AX, offset ListEnd
       cmp SI, AX
-      jge _0af
-      add SI, 10
-   jmp _3b
-_0af:
+   jle _3b
 jmp Exit1
 _0bf:
    mov AL, [SI + 7]
@@ -356,8 +421,8 @@ _0bf:
       je _0ff
          cmp AL, 4
          je _0ef
-            cmp AL, 0fh
-            jg _0df
+            cmp AL, 10h
+            jge _0df
             ;; Free Operand.
                mov DispN, AL
                mov AX, 30
@@ -511,7 +576,6 @@ HasMod:
    _1bf:
    call ReadByte
    call CheckMod
-jmp Exit1
 Exit1:
 ret
 CheckOpCode endp
@@ -625,7 +689,8 @@ WriteSegReg proc ;; DL: ComByte, AX: the line column to write to.
 ret
 WriteSegReg endp
 
-WriteRegMemory proc ;; DL: MOD REG R/M, &AX: the line column to write to (updated).
+WriteEffAddr proc ;; DL: MOD REG R/M, &AX: the line column to write to (updated).
+;; Write Register/Memory Address.
    push BX
    push DX
    push SI
@@ -669,10 +734,7 @@ _25f:
    pop SI
    pop DX
    pop BX
-ret
-WriteRegMemory endp
-
-WriteDisp proc
+;; Write Displacement.
    push BX
    push CX
    push DX
@@ -703,14 +765,13 @@ WriteDisp proc
       mov byte ptr [DI][BX + 4], 'h'
       mov AX, BX
       add AX, 5
-   jmp Exit3
 Exit3:
    pop DX
    pop CX
    pop BX
    mov DispN, 0
 ret
-WriteDisp endp
+WriteEffAddr endp
 
 WriteDirectAddress proc ;; AX: the line column to write to.
    push BX
@@ -747,7 +808,6 @@ WriteFreeOperand proc ;; DispN: the number of bytes, AX: the line column to writ
       mov byte ptr [DI][BX], '0'
       mov [DI][BX + 1], AX
       mov byte ptr [DI][BX + 3], 'h'
-      mov AX, 4
    jmp Exit4
    _27f:
    ;; Two-byte operand.
@@ -757,8 +817,6 @@ WriteFreeOperand proc ;; DispN: the number of bytes, AX: the line column to writ
       call ReadByte
       mov [DI][BX + 1], AX
       mov byte ptr [DI][BX + 5], 'h'
-      mov AX, 6
-   jmp Exit4
 Exit4:
    pop DX
    pop CX
@@ -947,7 +1005,6 @@ CheckMod proc ;; SI: the command prototype, DH: the OpCode, DL: mod reg r/m.
       mov AX, 30
       call WriteReg
       mov DX, SafeDX
-      mov DX, SafeDX
       and DL, 00000111b
       or DL, IsRw
       mov AX, 34
@@ -965,8 +1022,7 @@ _35f:
    ;; Direction Reverse 2:
    ;; r/m <- reg // d = 0.
       mov AX, 30
-      call WriteRegMemory
-      call WriteDisp
+      call WriteEffAddr
       add DI, AX
       mov [DI], " ,"
       sub DI, AX
@@ -980,8 +1036,7 @@ _35f:
    _36f:
    ;; reg <- r/m // d = 1 or no at all.
       mov AX, 34
-      call WriteRegMemory
-      call WriteDisp
+      call WriteEffAddr
       mov DX, SafeDX
       and DL, 00111000b
       shr DL, 3
@@ -989,7 +1044,6 @@ _35f:
       mov AX, 30
       call WriteReg
       mov [DI + 32], " ,"
-   jmp Exit6
 Exit6:
    pop DX
    pop BX
@@ -1051,8 +1105,7 @@ CheckMod2 proc ;; SI: the command prototype, SafeDX: (DH: the OpCode, DL: mod re
       mov byte ptr [DI + 32], '.'
       add AX, 3
    _3df:
-   call WriteRegMemory
-   call WriteDisp
+   call WriteEffAddr
    cmp byte ptr [SI + 5], 0
    je _3ef
       add DI, AX

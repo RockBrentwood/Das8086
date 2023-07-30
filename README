@@ -35,13 +35,13 @@ How to compile
 It can be compiled with:
 - Emu8086: Open source file and press run.
   Runs on contemporary hosts.
-- DOS: Using Tasm 1.4.
+- DOS: Using tasm 1.4.
   For now, a copy of TASM has been provided, along with a Makefile for compiling on DOS.
   The DOS host should have a "make" utility (e.g. "nmake").
   To compile by hand, from within DOSBox:
-     `Tasm\Tasm DisAsm86` command will compile source to obj,
+     `tasm\tasm DisAsm86` command will compile source to obj,
   and
-     `Tasm\tlink DisAsm86.obj` will link the object file to create the executable.
+     `tasm\tlink DisAsm86.obj` will link the object file to create the executable.
 
 Source Code
 ───────────

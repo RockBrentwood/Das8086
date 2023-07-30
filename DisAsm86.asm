@@ -39,6 +39,19 @@ ModByte		db 0
 ByteP		dw 9
 CurIP		dw 0
 
+;; struct ListItem {
+_Bytes	equ 0
+_Mask	equ 1
+_xrm	equ 2
+_d	equ 3
+_w	equ 4
+_s	equ 5
+_xcm	equ 6
+_Op	equ 7
+_Reg	equ 8
+_PB	equ 9
+;; };
+
 ;;         0     1     2  3  4  5  6   7    8     9
 ;;     OpBytes OpMask xrm d  w  s xcm  Op  Reg  P/B Op
 ;; All of the 00 aaa 0dw xrm should be combined: AOp (add,or,adc,sbb,and,sub,xor,cmp), (Eb,Rb; Ew,Rw; Rb,Eb; Rw,Ew)
@@ -203,7 +216,7 @@ _01f:
    _0b:
       mov BX, CurIP
       cmp BX, InN
-      jge _03f
+      jge _02f
       mov SI, offset InBuf
       mov DL, [SI+BX]
       mov OpCode, DL
@@ -214,19 +227,16 @@ _01f:
       _1b:
          mov byte ptr [DI+BX], ' '
          inc BX
-         cmp BX, 61
-         jg _02f
-      jmp _1b
-   _02f:
-   ;; --
-      mov byte ptr [DI+60], 10
+         cmp BX, 60
+      jl _1b
+      mov byte ptr [DI+BX], 10
       pop BX
       call CheckOpCode
       call WriteLine
       inc CurIP
       inc BX
    jmp _0b
-_03f:
+_02f:
    call CloseExFile
 ;; Report the files written.
 ;; Put String: DS:DX: '$'-terminated string.
@@ -241,13 +251,13 @@ WrongParams:
    mov DX, offset InvalidArguments
    mov AH, 09h
    int 21h
-jmp Exit0F
+jmp Exit0
 WriteInfo:
 ;; Put String: DS:DX: '$'-terminated string.
    mov DX, offset Banner
    mov AH, 09h
    int 21h
-jmp Exit0F
+jmp Exit0
 NoInFile:
 ;; Put String: DS:DX: '$'-terminated string.
    mov DX, offset NoFileOpened
@@ -261,7 +271,7 @@ NoInFile:
    mov DX, offset Eol
    mov AH, 09h
    int 21h
-   jmp Exit0F
+   jmp Exit0
 NoExFile:
 ;; Put String: DS:DX: '$'-terminated string.
    mov DX, offset NoFileCreated
@@ -275,7 +285,7 @@ NoExFile:
    mov DX, offset Eol
    mov AH, 09h
    int 21h
-Exit0F:
+Exit0:
 ;; exit(EXIT_FAILURE);
    mov AX, 4c01h
    int 21h
@@ -285,11 +295,11 @@ ReadFileName proc ;; ES:BX: Location on the command line to read from, DS:DI: Th
    _2b:
       mov AL, ES:BX
       cmp AL, ' '
-      je _04f
+      je _03f
       cmp AL, 0
-      je _04f
+      je _03f
       cmp AL, 13
-      je _04f
+      je _03f
       push BX
       mov BX, DX
       mov [DI+BX], AL
@@ -297,14 +307,14 @@ ReadFileName proc ;; ES:BX: Location on the command line to read from, DS:DI: Th
       inc BX
       inc DX
    jmp _2b
-_04f:
+_03f:
    cmp DX, 1
-   jle _05f
+   jle _04f
       clc
-   jmp _06f
-   _05f:
+   jmp _05f
+   _04f:
       stc
-   _06f:
+   _05f:
 ret
 ReadFileName endp
 
@@ -315,10 +325,10 @@ OpenInFile proc
    mov AL, 02h
    int 21h
    mov InFD, AX
-   jnc _07f
+   jnc _06f
       stc
-   jmp _08f
-   _07f:
+   jmp _07f
+   _06f:
       mov BX, InFD ;; File Handle
       mov DX, offset InBuf
       mov CX, 0ffh
@@ -330,7 +340,7 @@ OpenInFile proc
       mov AH, 3eh
       int 21h
       clc
-   _08f:
+   _07f:
 ret
 OpenInFile endp
 
@@ -368,6 +378,45 @@ CloseExFile proc
 ret
 CloseExFile endp
 
+ShowS1 macro S1
+   mov byte ptr [DI+BX], S1
+   inc BX
+endm
+
+ShowS2 macro S2
+   mov [DI+BX], ((S2 and 0ffh) shl 8) or ((S2 and 0ff00h) shr 8)
+   add BX, 2
+endm
+
+ShowS3 macro S2, S1
+   ShowS2 S2
+   ShowS1 S1
+endm
+
+;; Output 2 characters to the buffer.
+Show2 macro S2
+   mov [DI+BX], S2
+   add BX, 2
+endm
+
+ShowByteHex macro
+   ShowS1 "0"
+   call ReadByte
+   Show2 AX
+   ShowS1 "h"
+endm
+
+ShowWordHex macro
+   ShowS1 "0"
+   call ReadByte
+   push AX
+   call ReadByte
+   Show2 AX
+   pop AX
+   Show2 AX
+   ShowS1 "h"
+endm
+
 CheckOpCode proc
 ;; Format:
 ;; Addr: hh hh hh hh hh hh Mnem  Arg, Arg...
@@ -377,94 +426,94 @@ CheckOpCode proc
    mov SI, offset ListTab
    _3b:
       mov DL, OpCode
-      and DL, [SI+1]
-      cmp DL, [SI]
-      jne _09f
-         cmp byte ptr [SI+2], 0
-         je _0af
+      and DL, [SI+_Mask]
+      cmp DL, [SI+_Bytes]
+      jne _08f
+         cmp byte ptr [SI+_xrm], 0
+         je _09f
          call ReadByte
          mov ModByte, DL
-         cmp byte ptr [SI+2], 2
-         jne _0af
+         cmp byte ptr [SI+_xrm], 2
+         jne _09f
          shr DL, 3
          and DL, 7
          _4b:
-            cmp [SI+6], DL
-            je _0af
+            cmp [SI+_xcm], DL
+            je _09f
             add SI, 10
          jmp _4b
-      _09f:
+      _08f:
       add SI, 10
       mov AX, offset ListEnd
       cmp SI, AX
    jle _3b
 jmp Exit1
-_0af:
-   mov AL, [SI+7]
+_09f:
+   mov BL, [SI+_Op]
    call WriteCommand
    mov DL, OpCode
    and DL, 0f0h
    cmp DL, 70h
-   jne _0bf
+   jne _0af
    ;; Conditional Jumps.
-      mov AL, OpCode
-      and AL, 0fh
+      mov BL, OpCode
+      and BL, 0fh
       call WriteJcc
       mov DispN, 1
-      mov AX, 30
+      mov BX, 30
       call WriteJumpDisp
    jmp Exit1
-   _0bf:
-   mov AL, [SI+8]
+   _0af:
+   mov AL, [SI+_Reg]
    cmp AL, 200q
-   jne _0ef
+   jne _0df
    ;; Command with no register.
-      mov AL, [SI+9]
+      mov AL, [SI+_PB]
       cmp AL, 10h
-      jge _0cf
+      jge _0bf
       ;; Free Operand.
          mov DispN, AL
-         mov AX, 30
+         mov BX, 30
          call WriteFreeOperand
-      jmp _0df
-      _0cf:
+      jmp _0cf
+      _0bf:
       ;; Displacement.
          shr AL, 4
          and AL, 0fh
          mov DispN, AL
-         mov AX, 30
+         mov BX, 30
          call WriteJumpDisp
-      _0df:
+      _0cf:
    jmp Exit1
-   _0ef:
+   _0df:
    mov IsRs, 0
-   mov AL, [SI+8]	;; @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   mov AL, [SI+_Reg]
    cmp AL, 030q
    jne _10f
    ;; Has a segment register here.
       mov IsRs, 1
-      mov AL, [SI+2]
+      mov AL, [SI+_xrm]
       cmp AL, 1	;; Defer adding the segment ...
    je _10f	;; ... to MOD.
-      mov DL, OpCode
-      mov AL, [SI+7]
+      mov AL, [SI+_Op]
       cmp AL, 29
-      jne _0ff
+      jne _0ef
       ;; Segment override.
-         mov AX, 24
-         call WriteSegReg
-      jmp Exit1
-      _0ff:
+         mov BX, 24
+      jmp _0ff
+      _0ef:
       ;; Ordinary command with a segment register.
-         mov AX, 30
-         call WriteSegReg
+         mov BX, 30
+      _0ff:
+      mov AL, OpCode
+      call WriteSegReg
       jmp Exit1
    _10f:
-   mov AL, [SI+8]	;; @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   mov AL, [SI+_Reg]
    cmp AL, 040q
    jne _13f
       call CheckRv
-      mov AL, [SI+3]
+      mov AL, [SI+_d]
       cmp AL, 1
       jne _11f
          mov DL, OpCode
@@ -472,38 +521,39 @@ _0af:
          cmp DL, 0
       je _11f
       ;; Normal order.
-         mov AX, 30
+         mov BX, 30
          call WriteDirectAddress
-         mov [DI+38], " ,"
-         mov DL, OpCode
-         and DL, [SI+8]
-         and DL, 0fh
-         or DL, IsRw
-         mov AX, 40
+         ShowS2 ", "
+         mov AL, OpCode
+         and AL, [SI+_Reg]
+         and AL, 0fh
+         or AL, IsRw
          call WriteReg
       jmp _12f
       _11f:
       ;; Reverse order.
-         mov AX, 34
+         mov BX, 32
+         ShowS2 ", "
          call WriteDirectAddress
-         mov [DI+32], " ,"
-         mov DL, OpCode
-         and DL, [SI+8]
-         and DL, 0fh
-         or DL, IsRw
-         mov AX, 30
+         mov AL, OpCode
+         and AL, [SI+_Reg]
+         and AL, 0fh
+         or AL, IsRw
+         push BX
+         mov BX, 30
          call WriteReg
+         pop BX
       _12f:
    jmp Exit1
    _13f:
-   mov AL, [SI+2]
+   mov AL, [SI+_xrm]
    cmp AL, 0
    je _14f
       jmp HasMod
    _14f:
 ;; No MOD here.
 ;; Word or byte.
-   mov AL, [SI+4]
+   mov AL, [SI+_w]
    cmp AL, 2
    je _16f
    cmp AL, 3
@@ -517,46 +567,38 @@ _0af:
    jmp _16f
    _15f:
       mov DL, OpCode
-      and DL, [SI+8]
+      and DL, [SI+_Reg]
       cmp DL, 7
       jg _17f
    _16f:
-      mov DL, OpCode
-      and DL, [SI+8]
-      mov AX, 30
+      mov AL, OpCode
+      and AL, [SI+_Reg]
+      mov BX, 30
       call WriteReg
-      mov AL, [SI+9]
+      mov AL, [SI+_PB]
       cmp AL, 1
       jne _18f
       ;; Has one free operand.
-         mov [DI+32], " ,"
-         mov byte ptr[DI+34], '0'
-         call ReadByte
-         mov [DI+35], AX
-         mov byte ptr[DI+37], 'h'
+         ShowS2 ", "
+         ShowByteHex
    jmp _18f
    _17f:
-      mov DL, OpCode
-      and DL, [SI+8]
-      or DL, 010q
-      mov AX, 30
+      mov AL, OpCode
+      and AL, [SI+_Reg]
+      or AL, 010q
+      mov BX, 30
       call WriteReg
-      mov AL, [SI+9]
+      mov AL, [SI+_PB]
       cmp AL, 1
       jne _18f
       ;; Has two free operands.
-         call ReadByte
-         mov [DI+37], AX
-         call ReadByte
-         mov [DI+35], AX
-         mov [DI+32], " ,"
-         mov byte ptr[DI+34], '0'
-         mov byte ptr[DI+39], 'h'
+         ShowS2 ", "
+         ShowWordHex
    _18f:
 jmp Exit1
 HasMod:
 ;; Has MOD here.
-   cmp byte ptr [SI+2], 2
+   cmp byte ptr [SI+_xrm], 2
    jne _19f
       call CheckMod2
    jmp Exit1
@@ -612,18 +654,17 @@ WriteAddress endp
 ;;          0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30
 Command db "MOV XCHGTESTINC DEC PUSHPOP ADD OR  ADC SBB AND SUB XOR CMP NEG NOT MUL IMULDIV IDIVCALLJMP INT RET RETFIRETLOOPJCXZ  :     "
 .code
-WriteCommand proc ;; AL: Operator number.
-   push SI BX
+WriteCommand proc ;; BL: Operator number.
+   push SI
    mov SI, offset Command
-   mov AH, 0
-   mov BX, AX
+   mov BH, 0
    shl BX, 2
    mov AX, [SI+BX]
    mov [DI+24], AX
    add BX, 2
    mov AX, [SI+BX]
    mov [DI+26], AX
-   pop BX SI
+   pop SI
 ret
 WriteCommand endp
 
@@ -631,18 +672,17 @@ WriteCommand endp
 ;;          0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
 Jcc     db "JO  JNO JB  JNB JE  JNE JNA JA  JS  JNS JP  JNP JL  JGE JLE JG  "
 .code
-WriteJcc proc ;; AL: Operator number.
-   push SI BX
+WriteJcc proc ;; BL: Operator number.
+   push SI
    mov SI, offset Jcc
-   mov AH, 0
-   mov BX, AX
+   mov BH, 0
    shl BX, 2
    mov AX, [SI+BX]
    mov [DI+24], AX
    add BX, 2
    mov AX, [SI+BX]
    mov [DI+26], AX
-   pop BX SI
+   pop SI
 ret
 WriteJcc endp
 
@@ -650,25 +690,23 @@ WriteJcc endp
 ;;          0 1 2 3 4 5 6 7 8 9 101112131415
 RegName db "ALCLDLBLAHCHDHBHAXCXDXBXSPBPSIDI"
 .code
-WriteReg proc ;; DL: Register number or Shifted ModByte, AX: the line column to write to.
-   push SI BX
-   mov BL, IsRs
-   cmp BL, 1
+WriteReg proc ;; AL: Register number or Shifted ModByte, &BX: the line column to write to (updated).
+   cmp IsRs, 1
    je _1ef
-      mov BH, 0
-      mov BL, DL
-      shl BX, 1
+      push SI
       mov SI, offset RegName
+      xchg AX, BX
+      mov BH, 0
+      shl BX, 1
       mov BX, [SI+BX]
       xchg AX, BX
-      mov [DI+BX], AX ;; Output 2 characters to the buffer.
-      xchg AX, BX
+      Show2 AX
+      pop SI
    jmp _1ff
    _1ef:
-      mov DL, ModByte
+      mov AL, ModByte
       call WriteSegReg
    _1ff:
-   pop BX SI
 ret
 WriteReg endp
 
@@ -676,19 +714,18 @@ WriteReg endp
 ;;          0 1 2 3
 SegName db "ESCSSSDS"
 .code
-WriteSegReg proc ;; DL: ComByte, AX: the line column to write to.
-   push SI BX
+WriteSegReg proc ;; AL: ComByte, &BX: the line column to write to (updated).
+   push SI
+   mov SI, offset SegName
+   xchg AX, BX
    mov BH, 0
-   mov BL, DL
    and BL, 030q
    shr BX, 2
-   mov SI, offset SegName
    mov BX, [SI+BX]
    xchg AX, BX
-   mov [DI+BX], AX ;; Output 2 characters to the buffer.
-   xchg AX, BX
+   Show2 AX
    mov IsRs, 0
-   pop BX SI
+   pop SI
 ret
 WriteSegReg endp
 
@@ -696,10 +733,11 @@ WriteSegReg endp
 ;;             0       1       2       3       4       5       6       7
 RegMode db "[BX+SI] [BX+DI] [BP+SI] [BP+DI] [SI]    [DI]    [BP]    [BX]    "
 .code
-WriteEffAddr proc ;; DispN: the number of displacement bytes, &AX: the line column to write to (updated).
+WriteEffAddr proc ;; DispN: the number of displacement bytes, &BX: the line column to write to (updated).
 ;; Write Register/Memory Address.
-   push BX
    push AX
+   mov AX, BX
+   push BX
    mov BL, ModByte
    and BL, 307q
    cmp BL, 006q ;; Direct address, MOD = 00, r/m = 110
@@ -722,229 +760,212 @@ WriteEffAddr proc ;; DispN: the number of displacement bytes, &AX: the line colu
       mov [DI+6], AX
       pop DI
       pop SI
+      pop BX
       mov DL, ModByte
       and DL, 7
       cmp DL, 4
-      pop AX
       jge _20f
       ;; Less than 4.
-         add AX, 7
+         add BX, 7
       jmp _22f
       _20f:
-         add AX, 4
+         add BX, 4
       jmp _22f
    _21f:
-   pop AX
-   call WriteDirectAddress
-   add AX, 8
-_22f:
+      pop BX
+      call WriteDirectAddress
+   _22f:
 ;; Write Displacement.
    push CX
    mov CL, DispN
    cmp CL, 0
-   je Exit3
+   je Exit2
 ;; There is a displacement.
-   mov BX, AX
-   mov [DI+BX], "+ "
-   mov [DI+BX+2], "0 "
-   add BX, 4
+   ShowS3 " +"," "
    cmp CL, 1
    jne _23f
    ;; One-byte offset.
-      call ReadByte
-      mov [DI+BX], AX
-      mov byte ptr [DI+BX+2], 'h'
-      mov AX, BX
-      add AX, 3
-   jmp Exit3
+      ShowByteHex
+   jmp Exit2
    _23f:
    ;; Two-byte offset.
-      call ReadByte
-      mov [DI+BX+2], AX
-      call ReadByte
-      mov [DI+BX], AX
-      mov byte ptr [DI+BX+4], 'h'
-      mov AX, BX
-      add AX, 5
-Exit3:
-   pop CX BX
+      ShowWordHex
+Exit2:
+   pop CX AX
 ret
 WriteEffAddr endp
 
-WriteDirectAddress proc ;; AX: the line column to write to.
-   push BX
-   mov BX, AX
-   mov [DI+BX], "0["
-   mov [DI+BX+6], "]h"
-   call ReadByte
-   mov [DI+BX+4], AX
-   call ReadByte
-   mov [DI+BX+2], AX
-   mov AX, BX
-   pop BX
+WriteDirectAddress proc ;; &BX: the line column to write to (updated).
+   ShowS1 "["
+   ShowWordHex
+   ShowS1 "]"
 ret
 WriteDirectAddress endp
 
-WriteFreeOperand proc ;; DispN: the number of bytes, AX: the line column to write to.
-   push BX CX
-   mov BX, AX
+WriteFreeOperand proc ;; DispN: the number of bytes, &BX: the line column to write to (updated).
+   push CX
    mov CL, DispN
    cmp CL, 0
-   je Exit4
+   je Exit3
 ;; There are operands.
    cmp CL, 1
    jg _24f
    ;; One-byte operand.
-      mov byte ptr [DI+BX], '0'
-      call ReadByte
-      mov [DI+BX+1], AX
-      mov byte ptr [DI+BX+3], 'h'
-   jmp Exit4
+      ShowByteHex
+   jmp Exit3
    _24f:
    cmp CL, 2
    jg _25f
    ;; Two-byte operand.
-      mov byte ptr [DI+BX], '0'
-      call ReadByte
-      mov [DI+BX+3], AX
-      call ReadByte
-      mov [DI+BX+1], AX
-      mov byte ptr [DI+BX+5], 'h'
-   jmp Exit4
+      ShowWordHex
+   jmp Exit3
    _25f:
    ;; Four-byte operand: far address.
-      mov byte ptr [DI+BX+7], '0'
-      call ReadByte
-      mov [DI+BX+10], AX
-      call ReadByte
-      mov [DI+BX+8], AX
-      mov byte ptr [DI+BX+12], 'h'
-      mov byte ptr [DI+BX], '0'
-      call ReadByte
-      mov [DI+BX+3], AX
-      call ReadByte
-      mov [DI+BX+1], AX
-      mov [DI+BX+5], ':h'
-Exit4:
-   pop CX BX
+      push BX
+      add BX, 7
+      ShowWordHex
+      pop AX
+      xchg AX, BX
+      ShowWordHex
+      ShowS1 ":"
+      xchg AX, BX
+Exit3:
+   pop CX
 ret
 WriteFreeOperand endp
 
-WriteJumpDisp proc ;; DispN: the number of displacement bytes, AX: the line column to write to.
-   push BX CX
-   mov BX, AX
+WriteJumpDisp proc ;; DispN: the number of displacement bytes, &BX: the line column to write to (updated).
+   push CX
    cmp DispN, 1
-   jne _27f
+   jne _26f
    ;; One-byte jump displacement.
-      call ReadByte
-      mov DH, 0
-      cmp DL, 080h
-      jb _26f
-         mov DH, 0ffh
-      _26f:
-   jmp _28f
-   _27f:
+      call ReadInt
+   jmp _27f
+   _26f:
    ;; Two-byte jump displacement.
-      call ReadByte
-      mov DH, DL
-      call ReadByte
-      xchg DL, DH
-   _28f:
+      call ReadWord
+   _27f:
    mov CX, CurIP
    inc CX
    add CX, BaseIP
    add CX, DX
-   mov byte ptr [DI+BX+4], 'h'
    mov AL, CH
    call ByteToHex
-   mov [DI+BX+0], AX
+   Show2 AX
    mov AL, CL
    call ByteToHex
-   mov [DI+BX+2], AX
-   pop CX BX
+   Show2 AX
+   ShowS1 "h"
+   pop CX
 ret
 WriteJumpDisp endp
 
 ReadByte proc ;; CurIP: the last command IP, &ByteP: the line column to write to (updated) => AX: the byte in hex, DL: the byte.
-   push SI BX
-   inc CurIP
+   push SI
    mov SI, offset InBuf
-   mov BX, CurIP
+   xchg BX, CurIP
+   inc BX
    mov DL, [SI+BX]
-   mov BX, ByteP
+   xchg BX, CurIP
+   xchg BX, ByteP
    mov AL, DL
    call ByteToHex
-   mov [DI+BX], AX
-   add BX, 3
-   mov ByteP, BX
-   pop BX SI
+   Show2 AX
+   ShowS1 " "
+   xchg BX, ByteP
+   pop SI
 ret
 ReadByte endp
+
+ReadInt proc ;; CurIP: the last command IP, &ByteP: the line column to write to (updated) => DX: the byte, sign-extended to word-size.
+   call ReadByte
+   xchg AX, DX
+   cbw
+   xchg AX, DX
+ret
+ReadInt endp
+
+ReadWord proc ;; CurIP: the last command IP, &ByteP: the line column to write to (updated) => DX; the word
+   push SI
+   mov SI, offset InBuf
+   xchg BX, CurIP
+   inc BX
+   mov DL, [SI+BX]
+   inc BX
+   mov DH, [SI+BX]
+   xchg BX, CurIP
+   xchg BX, ByteP
+   mov AL, DL
+   call ByteToHex
+   Show2 AX
+   ShowS1 " "
+   mov AL, DH
+   call ByteToHex
+   Show2 AX
+   ShowS1 " "
+   xchg BX, ByteP
+   pop SI
+ret
+ReadWord endp
 
 CheckRv proc ;; SI: the command prototype
    push AX
    mov IsRw, 000q
-   mov AL, [SI+4]
+   mov AL, [SI+_w]
    cmp AL, 1
-   jne _29f
-      mov DH, OpCode
-      and DH, 1
-      cmp DH, 1
-      jne _2bf
+   jne _28f
+      mov AH, OpCode
+      and AH, 1
+      cmp AH, 1
+      jne Exit4
          mov IsRw, 010q
-   jmp _2bf
-   _29f:
+   jmp Exit4
+   _28f:
    cmp AL, 3
-   jne _2af
+   jne _29f
       mov IsRw, 010q
-   jmp _2bf
-   _2af:
+   jmp Exit4
+   _29f:
    cmp AL, 4
-   jne _2bf
+   jne Exit4
       mov IsRw, 020q
-   _2bf:
+   Exit4:
    pop AX
 ret
 CheckRv endp
 
-CheckSBit proc ;; SI: the command prototype, AX: the line column to write to.
-   push BX
-   mov BX, AX
+CheckSBit proc ;; SI: the command prototype, BX: the line column to write to.
    cmp IsRw, 0
-   jne _2cf
+   jne _2af
       mov DispN, 1
       call WriteFreeOperand
    jmp Exit5
-   _2cf:
-   mov DL, [SI+5]
+   _2af:
+   mov DL, [SI+_s]
    cmp DL, 2
-   je _2df
+   je _2bf
       mov DH, OpCode
       and DH, 2
       cmp DH, 2
-      je _2ef
-   _2df:
+      je _2cf
+   _2bf:
       mov DispN, 2
       call WriteFreeOperand
    jmp Exit5
-   _2ef:
+   _2cf:
 ;; Expanded according to the expansion rule.
-   call ReadByte
-   mov DH, 0
-   cmp DL, 80h
-   jb _2ff
-      mov DH, 0ffh
-   _2ff:
+   call ReadInt
+   ShowS1 "0"
    mov AL, DL
    call ByteToHex
-   mov [DI+BX+3], AX
+   push AX
    mov AL, DH
    call ByteToHex
-   mov [DI+BX+1], AX
-   mov byte ptr [DI+BX+0], '0'
-   mov byte ptr [DI+BX+5], 'h'
+   Show2 AX
+   pop AX
+   Show2 AX
+   ShowS1 "h"
 Exit5:
-   pop BX
 ret
 CheckSBit endp
 
@@ -956,77 +977,73 @@ CheckMod proc ;; SI: the command prototype.
    and DL, 3
    mov DispN, DL
    cmp DL, 3
-   jne _31f
-   mov AL, [SI+3]
+   jne _2ef
+   mov AL, [SI+_d]
    cmp AL, 1
-   jne _30f
+   jne _2df
       mov DH, OpCode
       and DH, 2
       cmp DH, 2
-   je _30f
+   je _2df
    ;; Direction Reverse 1:
    ;; r/m <- reg // d = 0.
-      mov DL, ModByte
-      shr DL, 3
-      and DL, 7
-      or DL, IsRw
-      mov AX, 34
+      mov AL, ModByte
+      shr AL, 3
+      and AL, 7
+      or AL, IsRw
+      mov BX, 34
       call WriteReg
-      mov DL, ModByte
-      and DL, 7
-      or DL, IsRw
-      mov AX, 30
+      mov AL, ModByte
+      and AL, 7
+      or AL, IsRw
+      mov BX, 30
       call WriteReg
-      mov [DI+32], " ,"
+      ShowS2 ", "
    jmp Exit6
-   _30f:
+   _2df:
    ;; reg <- r/m // d = 1 or no at all.
-      mov DL, ModByte
-      shr DL, 3
-      and DL, 7
-      or DL, IsRw
-      mov AX, 30
+      mov AL, ModByte
+      shr AL, 3
+      and AL, 7
+      or AL, IsRw
+      mov BX, 30
       call WriteReg
-      mov DL, ModByte
-      and DL, 7
-      or DL, IsRw
-      mov AX, 34
+      ShowS2 ", "
+      mov AL, ModByte
+      and AL, 7
+      or AL, IsRw
       call WriteReg
-      mov [DI+32], " ,"
    jmp Exit6
-_31f:
-   mov AL, [SI+3]
+_2ef:
+   mov AL, [SI+_d]
    cmp AL, 1
-   jne _32f
-      mov DH, OpCode
-      and DH, 2
-      cmp DH, 2
-   je _32f
+   jne _2ff
+      mov AH, OpCode
+      and AH, 2
+      cmp AH, 2
+   je _2ff
    ;; Direction Reverse 2:
    ;; r/m <- reg // d = 0.
-      mov AX, 30
+      mov BX, 30
       call WriteEffAddr
-      xchg AX, BX
-      mov [DI+BX], " ,"
-      xchg AX, BX
-      mov DL, ModByte
-      shr DL, 3
-      and DL, 7
-      or DL, IsRw
-      add AX, 2
+      ShowS2 ", "
+      mov AL, ModByte
+      shr AL, 3
+      and AL, 7
+      or AL, IsRw
       call WriteReg
    jmp Exit6
-   _32f:
+   _2ff:
    ;; reg <- r/m // d = 1 or no at all.
-      mov AX, 34
+      mov BX, 34
       call WriteEffAddr
-      mov DL, ModByte
-      shr DL, 3
-      and DL, 7
-      or DL, IsRw
-      mov AX, 30
+      mov AL, ModByte
+      shr AL, 3
+      and AL, 7
+      or AL, IsRw
+      mov BX, 30
       call WriteReg
-      mov [DI+32], " ,"
+      ShowS2 ", "
 Exit6:
    pop BX
 ret
@@ -1040,51 +1057,43 @@ CheckMod2 proc ;; SI: the command prototype.
    and DL, 3
    mov DispN, DL
    cmp DL, 3
-   jne _34f
+   jne _31f
    ;; r/m(reg) <- (bop) // d = 0.
-      mov DL, ModByte
-      and DL, 7
-      or DL, IsRw
-      mov AX, 30
+      mov AL, ModByte
+      and AL, 7
+      or AL, IsRw
+      mov BX, 30
       call WriteReg
-      mov AL, [SI+5]
+      mov AL, [SI+_s]
       cmp AL, 0
-      je _33f
-         mov [DI+32], " ,"
-         mov AX, 34
+      je _30f
+         ShowS2 ", "
          call CheckSBit
-      _33f:
+      _30f:
    jmp Exit7
-   _34f:
+   _31f:
 ;; r/m <- (bop) // d = 0.
-   mov AX, 30
+   mov BX, 30
    cmp IsRw, 0
-   jne _35f
-      mov [DI+30], ".b"
-      add AX, 2
-      jmp _37f
-   _35f:
+   jne _32f
+      ShowS2 "b."
+      jmp _34f
+   _32f:
    cmp IsRw, 010q
-   jne _36f
-      mov [DI+30], ".w"
-      add AX, 2
-      jmp _37f
-   _36f:
+   jne _33f
+      ShowS2 "w."
+      jmp _34f
+   _33f:
    cmp IsRw, 020q
-   jne _37f
-      mov [DI+30], "wd"
-      mov byte ptr [DI+32], '.'
-      add AX, 3
-   _37f:
+   jne _34f
+      ShowS3 "dw","."
+   _34f:
    call WriteEffAddr
-   cmp byte ptr [SI+5], 0
-   je _38f
-      xchg AX, BX
-      mov [DI+BX], " ,"
-      xchg AX, BX
-      add AX, 2
+   cmp byte ptr [SI+_s], 0
+   je _35f
+      ShowS2 ", "
       call CheckSBit
-   _38f:
+   _35f:
 Exit7:
    pop BX
 ret

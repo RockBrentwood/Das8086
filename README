@@ -2,7 +2,7 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Derived from a disassembler for the 16-bit member, 8086, of the x86 family,
 originally written by Justo Senka in x86 assembly suitable for processing by MASM or TASM,
-it is being prepared for translation to C.
+it has been translated to C, and the assembly language program will be phased out.
 
 It only handles the limited subset of the 8086 comprising the opcodes:
 
@@ -17,13 +17,16 @@ and is being staged for upward expansion to include the other opcodes.
 
 How to run
 ──────────
-A DOS platform required, for now.
+The program, DisAsm86, built from DisAsm86.c,
+can be run from the command-line on a POSIX-compatible host, e.g. as
+	./DisAsm86 Test.bin Test.s
+from the command-line prompt.
+
+How to run (DOS)
+────────────────
+To run the legacy DOS program, DisAsm86.exe, built from DisAsm86.asm, a DOS platform is required.
 It can be run on a 16-bit OS, such as DOS,
 or on any host that has installed a DOS emulator (such as DOSBox) or other 8086 Emulator, such as Emu8086.
-
-When translated to C, this restriction will be removed
-and the program will be compileable on any host that has a C compiler upwardly compatible with C99,
-and executable on any platform which the C compiler compiles to.
 
 The program executes from the command line and expects 2 arguments:
 - InFile: the file to disassemble,
@@ -32,11 +35,19 @@ Example: `DisAsm86 Test.bin Test.s`
 
 How to compile
 ──────────────
+A Makefile has been provided for the C program, that is suitable for GCC on Linux,
+or any POSIX-conforming host that a C compiler upwardly-compatible with C99.
+
+How to compile (DOS)
+────────────────────
+The legacy build for the assembly-language program and DOS has been retained, for now.
+The original Makefile, for the DOS build, has been moved to "MakeDOS".
+
 It can be compiled with:
 - Emu8086: Open source file and press run.
   Runs on contemporary hosts.
 - DOS: Using tasm 1.4.
-  For now, a copy of TASM has been provided, along with a Makefile for compiling on DOS.
+  For now, a copy of TASM has been provided, along with the MakeDOS makefile for compiling on DOS.
   The DOS host should have a "make" utility (e.g. "nmake").
   To compile by hand, from within DOSBox:
      `tasm\tasm DisAsm86` command will compile source to obj,
@@ -52,7 +63,7 @@ there are still limitations and bugs present.
 Upward Revision
 ───────────────
 Originally released for the benefit of future generations, to help better acquaint them with the legacy 8086,
-a root canal is being done on the source to open up its structure
+a root canal has been done on the source to open up its structure
 so that it can be scaled up to handle later versions of the x86 family.
 
 Its main talking point is that it is making direct use of the compile binary opcode maps
